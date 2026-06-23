@@ -1,11 +1,17 @@
 package io.github.dpetersanderson.mars;
 
-import io.github.dpetersanderson.mars.mips.dump.*;
+import io.github.dpetersanderson.mars.mips.dump.DumpFormat;
+import io.github.dpetersanderson.mars.mips.dump.DumpFormatLoader;
 import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.simulator.*;
-import io.github.dpetersanderson.mars.util.*;
-import io.github.dpetersanderson.mars.venus.*;
-import java.io.*;
+import io.github.dpetersanderson.mars.simulator.ProgramArgumentList;
+import io.github.dpetersanderson.mars.util.Binary;
+import io.github.dpetersanderson.mars.util.FilenameFinder;
+import io.github.dpetersanderson.mars.util.MemoryDump;
+import io.github.dpetersanderson.mars.venus.VenusUI;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.*;
 import javax.swing.*;
 
@@ -193,7 +199,7 @@ public class MarsLaunch {
                 continue;
             }
             DumpFormatLoader loader = new DumpFormatLoader();
-            ArrayList dumpFormats = loader.loadDumpFormats();
+            List<DumpFormat> dumpFormats = loader.loadDumpFormats();
             DumpFormat format = DumpFormatLoader.findDumpFormatGivenCommandDescriptor(dumpFormats, triple[1]);
             if (format == null) {
                 out.println("Error while attempting to save dump, format " + triple[1] + " was not found!");
@@ -729,7 +735,7 @@ public class MarsLaunch {
                 segments += ", ";
             }
         }
-        ArrayList dumpFormats = (new DumpFormatLoader()).loadDumpFormats();
+        List<DumpFormat> dumpFormats = (new DumpFormatLoader()).loadDumpFormats();
         String formats = "";
         for (int i = 0; i < dumpFormats.size(); i++) {
             formats += ((DumpFormat) dumpFormats.get(i)).getCommandDescriptor();

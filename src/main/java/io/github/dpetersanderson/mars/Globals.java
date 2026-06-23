@@ -1,12 +1,15 @@
 package io.github.dpetersanderson.mars;
 
-import io.github.dpetersanderson.mars.assembler.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.mips.instructions.*;
-import io.github.dpetersanderson.mars.mips.instructions.syscalls.*;
-import io.github.dpetersanderson.mars.util.*;
-import io.github.dpetersanderson.mars.venus.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.assembler.SymbolTable;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
+import io.github.dpetersanderson.mars.mips.instructions.InstructionSet;
+import io.github.dpetersanderson.mars.mips.instructions.syscalls.SyscallNumberOverride;
+import io.github.dpetersanderson.mars.util.PropertiesFile;
+import io.github.dpetersanderson.mars.venus.VenusUI;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar
@@ -234,10 +237,11 @@ public class Globals {
      * Read any syscall number assignment overrides from config file.
      * @return ArrayList of SyscallNumberOverride objects
      */
-    public ArrayList getSyscallOverrides() {
-        ArrayList overrides = new ArrayList();
+    public ArrayList<SyscallNumberOverride> getSyscallOverrides() {
+        ArrayList<SyscallNumberOverride> overrides = new ArrayList<>();
         Properties properties = PropertiesFile.loadPropertiesFromFile(syscallPropertiesFile);
-        Enumeration keys = properties.keys();
+
+        Enumeration<Object> keys = properties.keys();
         while (keys.hasMoreElements()) {
             String key = (String) keys.nextElement();
             overrides.add(new SyscallNumberOverride(key, properties.getProperty(key)));

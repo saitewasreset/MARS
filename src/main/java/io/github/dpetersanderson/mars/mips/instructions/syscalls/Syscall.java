@@ -1,6 +1,7 @@
 package io.github.dpetersanderson.mars.mips.instructions.syscalls;
 
-import io.github.dpetersanderson.mars.*;
+import io.github.dpetersanderson.mars.ProcessingException;
+import io.github.dpetersanderson.mars.ProgramStatement;
 
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar
@@ -49,26 +50,26 @@ public interface Syscall {
      *  number in the configuration file.
      *  @return service name as a string
      */
-    public abstract String getName();
+    String getName();
 
     /**
      * Set the service number.  This is provided to allow MARS implementer or user
      * to override the default service number.
      * @param num specified service number to override the default.
      */
-    public abstract void setNumber(int num);
+    void setNumber(int num);
 
     /**
      * Return the assigned service number.  This is the number the MIPS programmer
      * must store into $v0 before issuing the SYSCALL instruction.
      * @return assigned service number
      */
-    public abstract int getNumber();
+    int getNumber();
 
     /**
      * Performs syscall function.  It will be invoked when the service is invoked
      * at simulation time.  Service is identified by value stored in $v0.
      * @param statement ProgramStatement for this syscall statement.
      */
-    public abstract void simulate(ProgramStatement statement) throws ProcessingException;
+    void simulate(ProgramStatement statement) throws ProcessingException;
 }

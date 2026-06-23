@@ -1,8 +1,5 @@
 package io.github.dpetersanderson.mars.mips.instructions.syscalls;
 
-import io.github.dpetersanderson.mars.util.*;
-import java.util.*;
-
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar
 
@@ -37,7 +34,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * MARS starts up.
  */
 public class SyscallNumberOverride {
-    private String serviceName;
+    private final String serviceName;
     private int newServiceNumber;
 
     /**

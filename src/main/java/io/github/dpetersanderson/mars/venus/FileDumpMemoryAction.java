@@ -1,16 +1,23 @@
 package io.github.dpetersanderson.mars.venus;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.dump.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.dump.DumpFormat;
+import io.github.dpetersanderson.mars.mips.dump.DumpFormatLoader;
+import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
+import io.github.dpetersanderson.mars.util.Binary;
+import io.github.dpetersanderson.mars.util.MemoryDump;
 import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.plaf.basic.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicComboBoxRenderer;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar
@@ -167,7 +174,7 @@ public class FileDumpMemoryAction extends GuiAction {
         contents.add(segmentPanel, BorderLayout.WEST);
 
         // Next, create list of all available dump formats.
-        ArrayList dumpFormats = (new DumpFormatLoader()).loadDumpFormats();
+        List<DumpFormat> dumpFormats = (new DumpFormatLoader()).loadDumpFormats();
         formatListSelector = new JComboBox(dumpFormats.toArray());
         formatListSelector.setRenderer(new DumpFormatComboBoxRenderer(formatListSelector));
         formatListSelector.setSelectedIndex(0);

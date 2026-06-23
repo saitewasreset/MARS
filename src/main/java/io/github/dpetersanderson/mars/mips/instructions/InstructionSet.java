@@ -1,12 +1,24 @@
 package io.github.dpetersanderson.mars.mips.instructions;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.mips.instructions.syscalls.*;
-import io.github.dpetersanderson.mars.simulator.*;
-import io.github.dpetersanderson.mars.util.*;
-import java.io.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.ProcessingException;
+import io.github.dpetersanderson.mars.ProgramStatement;
+import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
+import io.github.dpetersanderson.mars.mips.hardware.Coprocessor0;
+import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
+import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
+import io.github.dpetersanderson.mars.mips.instructions.syscalls.Syscall;
+import io.github.dpetersanderson.mars.simulator.DelayedBranch;
+import io.github.dpetersanderson.mars.simulator.Exceptions;
+import io.github.dpetersanderson.mars.util.Binary;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.StringTokenizer;
 
 /*
 Copyright (c) 2003-2013,  Pete Sanderson and Kenneth Vollmar
@@ -2600,7 +2612,6 @@ public class InstructionSet {
 
         ////////////// GET AND CREATE LIST OF SYSCALL FUNCTION OBJECTS ////////////////////
         syscallLoader = new SyscallLoader();
-        syscallLoader.loadSyscalls();
 
         // Initialization step.  Create token list for each instruction example.  This is
         // used by parser to determine user program correct syntax.
