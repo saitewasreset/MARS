@@ -4,11 +4,10 @@ import io.github.dpetersanderson.mars.assembler.*;
 import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
 import io.github.dpetersanderson.mars.simulator.BackStepper;
 import io.github.dpetersanderson.mars.simulator.Simulator;
-
-import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import javax.swing.*;
 
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar

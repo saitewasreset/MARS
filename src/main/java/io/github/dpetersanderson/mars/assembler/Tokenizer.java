@@ -1,7 +1,6 @@
 package io.github.dpetersanderson.mars.assembler;
 
 import io.github.dpetersanderson.mars.*;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;

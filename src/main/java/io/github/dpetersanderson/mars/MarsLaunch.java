@@ -8,13 +8,12 @@ import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.FilenameFinder;
 import io.github.dpetersanderson.mars.util.MemoryDump;
 import io.github.dpetersanderson.mars.venus.VenusUI;
-
-import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
+import javax.swing.*;
 
 /*
 Copyright (c) 2003-2012,  Pete Sanderson and Kenneth Vollmar

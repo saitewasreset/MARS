@@ -1,6 +1,5 @@
 package io.github.dpetersanderson.mars.util;
 
-import javax.swing.filechooser.FileFilter;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -11,6 +10,7 @@ import java.util.Enumeration;
 import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import javax.swing.filechooser.FileFilter;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar

@@ -4,7 +4,6 @@ import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.EditorFont;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.SyntaxStyle;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.SyntaxUtilities;
-
 import java.awt.*;
 import java.util.Observable;
 import java.util.StringTokenizer;
