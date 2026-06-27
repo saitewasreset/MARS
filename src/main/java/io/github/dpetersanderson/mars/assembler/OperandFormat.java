@@ -1,9 +1,12 @@
 package io.github.dpetersanderson.mars.assembler;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.instructions.*;
+import io.github.dpetersanderson.mars.ErrorList;
+import io.github.dpetersanderson.mars.ErrorMessage;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.instructions.Instruction;
 import io.github.dpetersanderson.mars.util.Binary;
-import java.util.*;
+
+import java.util.ArrayList;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar
@@ -68,6 +71,7 @@ public class OperandFormat {
     static Instruction bestOperandMatch(TokenList tokenList, ArrayList instrMatches) {
         if (instrMatches == null) return null;
         if (instrMatches.size() == 1) return (Instruction) instrMatches.get(0);
+
         for (int i = 0; i < instrMatches.size(); i++) {
             Instruction potentialMatch = (Instruction) instrMatches.get(i);
             if (tokenOperandMatch(tokenList, potentialMatch, new ErrorList())) return potentialMatch;

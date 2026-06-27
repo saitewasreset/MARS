@@ -38,13 +38,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 public class BasicInstruction extends Instruction {
 
-    private String instructionName;
-    private BasicInstructionFormat instructionFormat;
-    private String operationMask;
-    private SimulationCode simulationCode;
+    private final BasicInstructionFormat instructionFormat;
+    private final String operationMask;
+    private final SimulationCode simulationCode;
 
-    private int opcodeMask; // integer with 1's where constants required (0/1 become 1, f/s/t become 0)
-    private int opcodeMatch; // integer matching constants required (0/1 become 0/1, f/s/t become 0)
+    private final int opcodeMask; // integer with 1's where constants required (0/1 become 1, f/s/t become 0)
+    private final int opcodeMatch; // integer matching constants required (0/1 become 0/1, f/s/t become 0)
     /**
      * BasicInstruction constructor.
      *
@@ -78,7 +77,7 @@ public class BasicInstruction extends Instruction {
         this.mnemonic = this.extractOperator(example);
         this.description = description;
         this.instructionFormat = instrFormat;
-        this.operationMask = operMask.replaceAll(" ", ""); // squeeze out any/all spaces
+        this.operationMask = operMask.replace(" ", ""); // squeeze out any/all spaces
         if (operationMask.length() != Instruction.INSTRUCTION_LENGTH_BITS) {
             System.out.println(example + " mask not " + Instruction.INSTRUCTION_LENGTH_BITS + " bits!");
         }

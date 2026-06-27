@@ -1,10 +1,7 @@
 package io.github.dpetersanderson.mars.mips.instructions;
 
-import io.github.dpetersanderson.mars.Globals;
 import io.github.dpetersanderson.mars.mips.instructions.syscalls.Syscall;
-import io.github.dpetersanderson.mars.mips.instructions.syscalls.SyscallNumberOverride;
 import io.github.dpetersanderson.mars.mips.instructions.syscalls.SyscallRegistry;
-import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -43,61 +40,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * from Bret Barker's GameServer class from the book "Developing Games In Java".
  */
 
-class SyscallLoader {
+public class SyscallLoader {
     private final List<Syscall> syscallList = SyscallRegistry.getSyscalls();
-
-    // Will get any syscall number override specifications from MARS config file and
-    // process them.  This will alter syscallList entry for affected names.
-    private ArrayList<Syscall> processSyscallNumberOverrides(ArrayList<Syscall> syscallList) {
-        ArrayList<SyscallNumberOverride> overrides = new Globals().getSyscallOverrides();
-
-        for (SyscallNumberOverride override : overrides) {
-            boolean match = false;
-
-            for (Syscall syscall : syscallList) {
-                if (override.getName().equals(syscall.getName())) {
-                    // we have a match to service name, assign new number
-                    syscall.setNumber(override.getNumber());
-                    match = true;
-                }
-            }
-            if (!match) {
-                throw new RuntimeException("Error: syscall name '" + override.getName()
-                        + "' in config file does not match any name in syscall list");
-            }
-        }
-
-        // Wait until end to check for duplicate numbers.  To do so earlier
-        // would disallow for instance the exchange of numbers between two
-        // services.  This is N-squared operation but N is small.
-        // This will also detect duplicates that accidently occur from addition
-        // of a new Syscall subclass to the collection, even if the config file
-        // does not contain any overrides.
-        boolean duplicates = false;
-
-        for (int i = 0; i < syscallList.size(); i++) {
-            Syscall syscallA = syscallList.get(i);
-            for (int j = i + 1; j < syscallList.size(); j++) {
-                Syscall syscallB = syscallList.get(j);
-                if (syscallA.getNumber() == syscallB.getNumber()) {
-                    System.out.println("Error: syscalls " + syscallA.getName() + " and " + syscallB.getName()
-                            + " are both assigned same number " + syscallA.getNumber());
-                    duplicates = true;
-                }
-            }
-        }
-
-        if (duplicates) {
-            throw new RuntimeException("Error: detected duplicate syscalls");
-        }
-        return syscallList;
-    }
 
     /*
      * Method to find Syscall object associated with given service number.
      * Returns null if no associated object found.
      */
-    Syscall findSyscall(int number) {
+    public Syscall findSyscall(int number) {
         // linear search is OK since number of syscalls is small.
         Syscall service, match = null;
 
