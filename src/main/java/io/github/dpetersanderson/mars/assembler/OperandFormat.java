@@ -5,7 +5,6 @@ import io.github.dpetersanderson.mars.ErrorMessage;
 import io.github.dpetersanderson.mars.Globals;
 import io.github.dpetersanderson.mars.mips.instructions.Instruction;
 import io.github.dpetersanderson.mars.util.Binary;
-
 import java.util.ArrayList;
 
 /*
