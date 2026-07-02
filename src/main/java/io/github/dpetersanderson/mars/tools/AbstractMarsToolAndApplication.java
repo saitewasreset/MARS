@@ -4,16 +4,15 @@ import io.github.dpetersanderson.mars.Globals;
 import io.github.dpetersanderson.mars.MIPSprogram;
 import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.util.FilenameFinder;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.filechooser.FileFilter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileFilter;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar

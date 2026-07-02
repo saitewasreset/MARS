@@ -3,12 +3,11 @@ package io.github.dpetersanderson.mars.tools;
 import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 
 /*
 Copyright (c) 2010-2011,  Pete Sanderson and Kenneth Vollmar

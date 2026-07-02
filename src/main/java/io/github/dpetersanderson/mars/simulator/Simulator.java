@@ -8,11 +8,10 @@ import io.github.dpetersanderson.mars.util.SystemIO;
 import io.github.dpetersanderson.mars.venus.RunGoAction;
 import io.github.dpetersanderson.mars.venus.RunSpeedPanel;
 import io.github.dpetersanderson.mars.venus.RunStepAction;
-
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import javax.swing.*;
 
 /*
 Copyright (c) 2003-2010,  Pete Sanderson and Kenneth Vollmar

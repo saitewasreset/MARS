@@ -33,12 +33,11 @@ import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
-
-import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import javax.swing.*;
 
 /**
  *

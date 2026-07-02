@@ -5,7 +5,10 @@ import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.simulator.Exceptions;
 import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.venus.AbstractFontSettingDialog;
-
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Arrays;
+import java.util.Random;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.CaretEvent;
@@ -13,10 +16,6 @@ import javax.swing.event.CaretListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.text.DefaultCaret;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.Arrays;
-import java.util.Random;
 
 /*
 Copyright (c) 2003-2014,  Pete Sanderson and Kenneth Vollmar
@@ -454,13 +453,13 @@ public class KeyboardAndDisplaySimulator extends AbstractMarsToolAndApplication 
      */
     protected JComponent getHelpComponent() {
         final String helpContent = "Keyboard And Display MMIO Simulator\n\n"
-            + "Use this program to simulate Memory-Mapped I/O (MMIO) for a keyboard input device and character display"
-            + " output device.  It may be run either from MARS' Tools menu or as a stand-alone application. For the"
-            + " latter, simply write a driver to instantiate a"
-            + " io.github.dpetersanderson.mars.tools.KeyboardAndDisplaySimulator object and invoke its go() method.\n"
-            + "\n"
-            + "While the tool is connected to MIPS, each keystroke in the text area causes the corresponding ASCII"
-            + " code to be placed in the Receiver Data register (low-order byte of memory word "
+                + "Use this program to simulate Memory-Mapped I/O (MMIO) for a keyboard input device and character display"
+                + " output device.  It may be run either from MARS' Tools menu or as a stand-alone application. For the"
+                + " latter, simply write a driver to instantiate a"
+                + " io.github.dpetersanderson.mars.tools.KeyboardAndDisplaySimulator object and invoke its go() method.\n"
+                + "\n"
+                + "While the tool is connected to MIPS, each keystroke in the text area causes the corresponding ASCII"
+                + " code to be placed in the Receiver Data register (low-order byte of memory word "
                 + Binary.intToHexString(RECEIVER_DATA) + "), and the "
                 + "Ready bit to be set to 1 in the Receiver Control register (low-order bit of "
                 + Binary.intToHexString(RECEIVER_CONTROL) + ").  The Ready bit is automatically reset to 0 when the"

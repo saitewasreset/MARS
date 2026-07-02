@@ -6,14 +6,13 @@ import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
 import io.github.dpetersanderson.mars.mips.hardware.Register;
 import io.github.dpetersanderson.mars.mips.hardware.RegisterAccessNotice;
 import io.github.dpetersanderson.mars.util.Binary;
-
-import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
 
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar

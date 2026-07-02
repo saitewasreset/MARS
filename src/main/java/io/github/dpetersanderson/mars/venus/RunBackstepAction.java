@@ -5,9 +5,8 @@ import io.github.dpetersanderson.mars.mips.hardware.Coprocessor0;
 import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
-
-import javax.swing.*;
 import java.awt.event.ActionEvent;
+import javax.swing.*;
 
 /*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar

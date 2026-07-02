@@ -29,10 +29,9 @@ package io.github.dpetersanderson.mars.tools;
 
 import io.github.dpetersanderson.mars.ProgramStatement;
 import io.github.dpetersanderson.mars.mips.hardware.*;
-
-import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.*;
 
 // import io.github.dpetersanderson.mars.tools.bhtsim.BHTSimGUI;
 // import io.github.dpetersanderson.mars.tools.bhtsim.BHTableModel;

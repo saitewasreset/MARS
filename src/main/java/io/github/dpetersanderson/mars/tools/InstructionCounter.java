@@ -33,9 +33,8 @@ import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstruction;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstructionFormat;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 /**
  *

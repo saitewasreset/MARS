@@ -5,11 +5,10 @@ import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.*;
 
 /**
  * Simple Demo of Mars tool capability

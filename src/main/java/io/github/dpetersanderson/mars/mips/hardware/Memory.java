@@ -6,7 +6,6 @@ import io.github.dpetersanderson.mars.Settings;
 import io.github.dpetersanderson.mars.mips.instructions.Instruction;
 import io.github.dpetersanderson.mars.simulator.Exceptions;
 import io.github.dpetersanderson.mars.util.Binary;
-
 import java.util.*;
 
 /*

@@ -6,18 +6,17 @@ import io.github.dpetersanderson.mars.mips.hardware.SettingsListener;
 import io.github.dpetersanderson.mars.venus.editors.MARSTextEditingArea;
 import io.github.dpetersanderson.mars.venus.editors.generic.GenericTextArea;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.JEditBasedTextArea;
-
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.undo.CompoundEdit;
-import javax.swing.undo.UndoManager;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoManager;
 
 /*
 Copyright (c) 2003-2011,  Pete Sanderson and Kenneth Vollmar

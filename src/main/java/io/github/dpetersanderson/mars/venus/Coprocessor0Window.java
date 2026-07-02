@@ -6,14 +6,13 @@ import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.simulator.Simulator;
 import io.github.dpetersanderson.mars.simulator.SimulatorNotice;
 import io.github.dpetersanderson.mars.util.Binary;
-
+import java.awt.*;
+import java.awt.event.MouseEvent;
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
-import java.awt.*;
-import java.awt.event.MouseEvent;
 
 /*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar

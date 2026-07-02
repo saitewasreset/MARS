@@ -6,14 +6,13 @@ import io.github.dpetersanderson.mars.Settings;
 import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.simulator.Simulator;
 import io.github.dpetersanderson.mars.simulator.SimulatorNotice;
-
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.*;
+import javax.swing.*;
+import javax.swing.event.*;
+import javax.swing.table.*;
 
 /*
 Copyright (c) 2003-2007,  Pete Sanderson and Kenneth Vollmar

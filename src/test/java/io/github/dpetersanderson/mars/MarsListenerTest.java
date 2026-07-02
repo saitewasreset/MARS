@@ -2,8 +2,6 @@ package io.github.dpetersanderson.mars;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
@@ -104,15 +102,15 @@ class MarsListenerTest {
         RegisterFile.addRegistersListener(listener);
         RegisterFile.updateRegister("$t3", 101);
 
-        assertTrue(listener.callCount >= 1,
+        assertTrue(
+                listener.callCount >= 1,
                 "Listener should fire at least once when writing to a GPR after addRegistersListener");
 
         listener.reset();
         RegisterFile.removeRegistersObserver(listener);
         RegisterFile.updateRegister("$t4", 202);
 
-        assertEquals(0, listener.callCount,
-                "Listener should NOT fire after removeRegistersObserver");
+        assertEquals(0, listener.callCount, "Listener should NOT fire after removeRegistersObserver");
     }
 
     @Test
@@ -122,15 +120,13 @@ class MarsListenerTest {
         Coprocessor0.addRegistersListener(listener);
         Coprocessor0.updateRegister("$12", 0xABCD);
 
-        assertTrue(listener.callCount >= 1,
-                "Listener should fire when writing to a Coprocessor0 register");
+        assertTrue(listener.callCount >= 1, "Listener should fire when writing to a Coprocessor0 register");
 
         listener.reset();
         Coprocessor0.removeRegistersListener(listener);
         Coprocessor0.updateRegister("$14", 0x1234);
 
-        assertEquals(0, listener.callCount,
-                "Listener should NOT fire after removeRegistersListener");
+        assertEquals(0, listener.callCount, "Listener should NOT fire after removeRegistersListener");
     }
 
     @Test
@@ -140,14 +136,15 @@ class MarsListenerTest {
         Coprocessor1.addRegistersListener(listener);
         Coprocessor1.updateRegister(0, 42);
 
-        assertTrue(listener.callCount >= 1,
-                "Listener should fire when writing to a Coprocessor1 register");
+        assertTrue(listener.callCount >= 1, "Listener should fire when writing to a Coprocessor1 register");
 
         listener.reset();
         Coprocessor1.removeRegistersListener(listener);
         Coprocessor1.updateRegister(1, 99);
 
-        assertEquals(0, listener.callCount,
+        assertEquals(
+                0,
+                listener.callCount,
                 "Listener should NOT fire after removeRegistersListener (regression for Copy-Paste bug: "
                         + "removeRegistersListener was calling addListener instead of removeListener)");
     }
@@ -212,8 +209,7 @@ class MarsListenerTest {
         Globals.memory.removeMemoryAccessListener(listener);
         safeMemorySet(0x10000100, 2);
 
-        assertEquals(0, listener.callCount,
-                "Listener should NOT fire after being removed");
+        assertEquals(0, listener.callCount, "Listener should NOT fire after being removed");
     }
 
     @Test
@@ -223,13 +219,11 @@ class MarsListenerTest {
         safeAddMemoryAccessListener(listener, 0x10000000, 0x10000010);
 
         safeMemorySet(0x10000008, 1);
-        assertEquals(1, listener.callCount,
-                "Write inside registered range should trigger listener");
+        assertEquals(1, listener.callCount, "Write inside registered range should trigger listener");
 
         listener.reset();
         safeMemorySet(0x10000200, 2);
-        assertEquals(0, listener.callCount,
-                "Write outside registered range should NOT trigger listener");
+        assertEquals(0, listener.callCount, "Write outside registered range should NOT trigger listener");
 
         Globals.memory.removeMemoryAccessListener(listener, 0x10000000, 0x10000010);
     }
@@ -261,25 +255,18 @@ class MarsListenerTest {
         Simulator.getInstance().addListener(listener);
 
         MIPSprogram program = TestUtils.assembleProgram(
-                tempDir,
-                "sim-listen.asm",
-                ".text",
-                ".globl main",
-                "main:",
-                "addi $v0, $zero, 10",
-                "syscall");
+                tempDir, "sim-listen.asm", ".text", ".globl main", "main:", "addi $v0, $zero, 10", "syscall");
 
         RegisterFile.initializeProgramCounter(true);
         boolean finished = program.simulate(50);
         assertTrue(finished, "Simulation should finish within max steps");
 
-        assertTrue(listener.actions.size() >= 2,
+        assertTrue(
+                listener.actions.size() >= 2,
                 "Should receive at least SIMULATOR_START and SIMULATOR_STOP, got: " + listener.actions);
 
-        boolean sawStart = listener.actions.stream()
-                .anyMatch(action -> action == SimulatorNotice.SIMULATOR_START);
-        boolean sawStop = listener.actions.stream()
-                .anyMatch(action -> action == SimulatorNotice.SIMULATOR_STOP);
+        boolean sawStart = listener.actions.stream().anyMatch(action -> action == SimulatorNotice.SIMULATOR_START);
+        boolean sawStop = listener.actions.stream().anyMatch(action -> action == SimulatorNotice.SIMULATOR_STOP);
 
         assertTrue(sawStart, "Should receive SIMULATOR_START notification");
         assertTrue(sawStop, "Should receive SIMULATOR_STOP notification");
@@ -297,13 +284,11 @@ class MarsListenerTest {
         boolean current = settings.getBooleanSetting(Settings.DATA_SEGMENT_HIGHLIGHTING);
         settings.setBooleanSetting(Settings.DATA_SEGMENT_HIGHLIGHTING, !current);
 
-        assertEquals(1, listener.callCount,
-                "Listener should be called when a boolean setting changes");
+        assertEquals(1, listener.callCount, "Listener should be called when a boolean setting changes");
 
         settings.setBooleanSetting(Settings.DATA_SEGMENT_HIGHLIGHTING, current);
 
-        assertEquals(2, listener.callCount,
-                "Listener should be called again when setting changes back");
+        assertEquals(2, listener.callCount, "Listener should be called again when setting changes back");
 
         settings.removeListener(listener);
     }
@@ -334,17 +319,15 @@ class MarsListenerTest {
         register.addListener(selfRemoving);
         register.addListener(other);
 
-        assertDoesNotThrow(() -> register.setValue(100),
+        assertDoesNotThrow(
+                () -> register.setValue(100),
                 "Self-removing listener during notification should not throw ConcurrentModificationException");
 
-        assertEquals(1, other.callCount,
-                "Other listener should still receive notification");
+        assertEquals(1, other.callCount, "Other listener should still receive notification");
 
         register.setValue(200);
-        assertEquals(1, selfRemoving.callCount,
-                "Self-removed listener should NOT receive subsequent notifications");
-        assertEquals(2, other.callCount,
-                "Other listener should receive subsequent notification");
+        assertEquals(1, selfRemoving.callCount, "Self-removed listener should NOT receive subsequent notifications");
+        assertEquals(2, other.callCount, "Other listener should receive subsequent notification");
     }
 
     @Test
@@ -357,8 +340,7 @@ class MarsListenerTest {
         register.removeListener(listener);
         register.setValue(50);
 
-        assertEquals(1, listener.callCount,
-                "After add twice + remove once, one copy remains and should fire");
+        assertEquals(1, listener.callCount, "After add twice + remove once, one copy remains and should fire");
     }
 
     @Test
