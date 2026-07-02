@@ -33,12 +33,12 @@ import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Observable;
-import javax.swing.*;
 
 /**
  *
@@ -258,15 +258,15 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
      * This memory access is observed and the corresponding instruction is decoded and categorized by the tool.
      * According to the category the counter values are increased and the display gets updated.
      *
-     * @param resource the observed resource
      * @param notice signals the type of access (memory, register etc.)
      */
-    protected void processMIPSUpdate(Observable resource, AccessNotice notice) {
+    protected void processMIPSUpdate(AccessNotice notice) {
 
         if (!notice.accessIsFromMIPS()) return;
 
         // check for a read access in the text segment
-        if (notice.getAccessType() == AccessNotice.READ && notice instanceof MemoryAccessNotice memAccNotice) {
+        if (notice.getAccessType() == AccessNotice.AccessType.READ
+                && notice instanceof MemoryAccessNotice memAccNotice) {
             // The next three statments are from Felipe Lessa's instruction counter.  Prevents double-counting.
             int a = memAccNotice.getAddress();
             if (a == lastAddress) return;

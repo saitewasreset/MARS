@@ -28,17 +28,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.github.dpetersanderson.mars.tools;
 
 import io.github.dpetersanderson.mars.ProgramStatement;
-import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
-import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
-import io.github.dpetersanderson.mars.mips.hardware.Memory;
-import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
-import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
-// import io.github.dpetersanderson.mars.tools.bhtsim.BHTSimGUI;
-// import io.github.dpetersanderson.mars.tools.bhtsim.BHTableModel;
+import io.github.dpetersanderson.mars.mips.hardware.*;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Observable;
-import javax.swing.JComponent;
+
+// import io.github.dpetersanderson.mars.tools.bhtsim.BHTSimGUI;
+// import io.github.dpetersanderson.mars.tools.bhtsim.BHTableModel;
 
 /**
  * A MARS tool for simulating branch prediction with a Branch History Table (BHT)
@@ -326,14 +323,14 @@ public class BHTSimulator extends AbstractMarsToolAndApplication implements Acti
      * If the next instruction to execute was a branch instruction, the branch prediction is performed and visualized.
      * In case the last instruction was a branch instruction, the outcome of the branch prediction is analyzed and visualized.
      *
-     * @param resource the observed resource
      * @param notice signals the type of access (memory, register etc.)
      */
-    protected void processMIPSUpdate(Observable resource, AccessNotice notice) {
+    @Override
+    protected void processMIPSUpdate(AccessNotice notice) {
 
         if (!notice.accessIsFromMIPS()) return;
 
-        if (notice.getAccessType() == AccessNotice.READ && notice instanceof MemoryAccessNotice) {
+        if (notice.getAccessType() == AccessNotice.AccessType.READ && notice instanceof MemoryAccessNotice) {
 
             // now it is safe to make a cast of the notice
             MemoryAccessNotice memAccNotice = (MemoryAccessNotice) notice;

@@ -1,15 +1,21 @@
 package io.github.dpetersanderson.mars.venus;
 
-import io.github.dpetersanderson.mars.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.Settings;
 import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.simulator.*;
-import io.github.dpetersanderson.mars.util.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.simulator.Simulator;
+import io.github.dpetersanderson.mars.simulator.SimulatorNotice;
+import io.github.dpetersanderson.mars.util.Binary;
+
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.table.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 
 /*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar
@@ -43,7 +49,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  Sets up a window to display Coprocessor 1 registers in the Registers pane of the UI.
  *   @author Pete Sanderson 2005
  **/
-public class Coprocessor1Window extends JPanel implements ActionListener, Observer {
+public class Coprocessor1Window extends JPanel implements ActionListener, SimulatorListener, RegisterAccessListener {
     private static JTable table;
     private static Register[] registers;
     private Object[][] tableData;
@@ -60,7 +66,7 @@ public class Coprocessor1Window extends JPanel implements ActionListener, Observ
      *  Constructor which sets up a fresh window with a table that contains the register values.
      **/
     public Coprocessor1Window() {
-        Simulator.getInstance().addObserver(this);
+        Simulator.getInstance().addListener(this);
         settings = Globals.getSettings();
         // Display registers in table contained in scroll pane.
         this.setLayout(new BorderLayout()); // table display will occupy entire width if widened
@@ -243,45 +249,6 @@ public class Coprocessor1Window extends JPanel implements ActionListener, Observ
                         NumberDisplayBaseChooser.formatDoubleNumber(val, base), number, DOUBLE_COLUMN);
     }
 
-    /** Required by Observer interface.  Called when notified by an Observable that we are registered with.
-     * Observables include:
-     *   The Simulator object, which lets us know when it starts and stops running
-     *   A register object, which lets us know of register operations
-     * The Simulator keeps us informed of when simulated MIPS execution is active.
-     * This is the only time we care about register operations.
-     * @param observable The Observable object who is notifying us
-     * @param obj Auxiliary object with additional information.
-     */
-    public void update(Observable observable, Object obj) {
-        if (observable == io.github.dpetersanderson.mars.simulator.Simulator.getInstance()) {
-            SimulatorNotice notice = (SimulatorNotice) obj;
-            if (notice.getAction() == SimulatorNotice.SIMULATOR_START) {
-                // Simulated MIPS execution starts.  Respond to memory changes if running in timed
-                // or stepped mode.
-                if (notice.getRunSpeed() != RunSpeedPanel.UNLIMITED_SPEED || notice.getMaxSteps() == 1) {
-                    Coprocessor1.addRegistersObserver(this);
-                    this.highlighting = true;
-                }
-            } else {
-                // Simulated MIPS execution stops.  Stop responding.
-                Coprocessor1.deleteRegistersObserver(this);
-            }
-        } else if (obj instanceof RegisterAccessNotice) {
-            // NOTE: each register is a separate Observable
-            RegisterAccessNotice access = (RegisterAccessNotice) obj;
-            if (access.getAccessType() == AccessNotice.WRITE) {
-                // For now, use highlighting technique used by Label Window feature to highlight
-                // memory cell corresponding to a selected label.  The highlighting is not
-                // as visually distinct as changing the background color, but will do for now.
-                // Ideally, use the same highlighting technique as for Text Segment -- see
-                // AddressCellRenderer class in DataSegmentWindow.java.
-                this.highlighting = true;
-                this.highlightCellForRegister((Register) observable);
-                Globals.getGui().getRegistersPane().setSelectedComponent(this);
-            }
-        }
-    }
-
     /**
      *  Highlight the row corresponding to the given register.
      *  @param register Register object corresponding to row to be selected.
@@ -304,6 +271,35 @@ public class Coprocessor1Window extends JPanel implements ActionListener, Observ
              mouseListeners[i].mousePressed(fakeMouseEvent);
           }
         */
+    }
+
+    @Override
+    public void registerAccessed(RegisterAccessNotice notice) {
+        if (notice.getAccessType() == AccessNotice.AccessType.WRITE) {
+            // For now, use highlighting technique used by Label Window feature to highlight
+            // memory cell corresponding to a selected label.  The highlighting is not
+            // as visually distinct as changing the background color, but will do for now.
+            // Ideally, use the same highlighting technique as for Text Segment -- see
+            // AddressCellRenderer class in DataSegmentWindow.java.
+            this.highlighting = true;
+            this.highlightCellForRegister(notice.getRegister());
+            Globals.getGui().getRegistersPane().setSelectedComponent(this);
+        }
+    }
+
+    @Override
+    public void stateChanged(SimulatorNotice notice) {
+        if (notice.getAction() == SimulatorNotice.SIMULATOR_START) {
+            // Simulated MIPS execution starts.  Respond to memory changes if running in timed
+            // or stepped mode.
+            if (notice.getRunSpeed() != RunSpeedPanel.UNLIMITED_SPEED || notice.getMaxSteps() == 1) {
+                Coprocessor1.addRegistersListener(this);
+                this.highlighting = true;
+            }
+        } else {
+            // Simulated MIPS execution stops.  Stop responding.
+            Coprocessor1.removeRegistersListener(this);
+        }
     }
 
     /*

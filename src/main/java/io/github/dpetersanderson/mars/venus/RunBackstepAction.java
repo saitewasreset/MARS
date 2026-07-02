@@ -1,10 +1,13 @@
 package io.github.dpetersanderson.mars.venus;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import java.awt.*;
-import java.awt.event.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.hardware.Coprocessor0;
+import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
+import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
+
 import javax.swing.*;
+import java.awt.event.ActionEvent;
 
 /*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar
@@ -63,12 +66,12 @@ public class RunBackstepAction extends GuiAction {
 
         if (Globals.getSettings().getBackSteppingEnabled()) {
             boolean inDelaySlot = Globals.program.getBackStepper().inDelaySlot(); // Added 25 June 2007
-            Memory.getInstance().addObserver(executePane.getDataSegmentWindow());
-            RegisterFile.addRegistersObserver(executePane.getRegistersWindow());
-            Coprocessor0.addRegistersObserver(executePane.getCoprocessor0Window());
-            Coprocessor1.addRegistersObserver(executePane.getCoprocessor1Window());
+            Memory.getInstance().addMemoryAccessListener(executePane.getDataSegmentWindow());
+            RegisterFile.addRegistersListener(executePane.getRegistersWindow());
+            Coprocessor0.addRegistersListener(executePane.getCoprocessor0Window());
+            Coprocessor1.addRegistersListener(executePane.getCoprocessor1Window());
             Globals.program.getBackStepper().backStep();
-            Memory.getInstance().deleteObserver(executePane.getDataSegmentWindow());
+            Memory.getInstance().removeMemoryAccessListener(executePane.getDataSegmentWindow());
             RegisterFile.deleteRegistersObserver(executePane.getRegistersWindow());
             executePane.getRegistersWindow().updateRegisters();
             executePane.getCoprocessor1Window().updateRegisters();

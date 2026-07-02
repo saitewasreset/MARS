@@ -37,16 +37,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * @version July 2005
  */
 public abstract class AccessNotice {
-    /** Indicates the purpose of access was to read. */
-    public static final int READ = 0;
-    /** Indicates the purpose of access was to write. */
-    public static final int WRITE = 1;
+    public enum AccessType {
+        READ,
+        WRITE
+    }
 
-    private final int accessType;
+    private final AccessNotice.AccessType accessType;
     private final Thread thread;
 
-    protected AccessNotice(int type) {
-        if (type != READ && type != WRITE) {
+    protected AccessNotice(AccessNotice.AccessType type) {
+        if (type != AccessType.READ && type != AccessType.WRITE) {
             throw new IllegalArgumentException();
         }
         accessType = type;
@@ -55,7 +55,7 @@ public abstract class AccessNotice {
     /** Get the access type: READ or WRITE.
      * @return Access type, either AccessNotice.READ or AccessNotice.WRITE
      */
-    public int getAccessType() {
+    public AccessNotice.AccessType getAccessType() {
         return accessType;
     }
 

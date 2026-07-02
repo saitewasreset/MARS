@@ -1,8 +1,5 @@
 package io.github.dpetersanderson.mars.mips.hardware;
 
-import io.github.dpetersanderson.mars.*;
-import java.util.*;
-
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar
 
@@ -31,25 +28,31 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (MIT license, http://www.opensource.org/licenses/mit-license.html)
  */
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  *  Abstraction to represent a register of a MIPS Assembler.
  *   @author Jason Bumgarner, Jason Shrewsbury, Ben Sherman
  *   @version June 2003
  **/
-public class Register extends Observable {
-    private String name;
-    private int number, resetValue;
+public class Register {
+    private final String name;
+    private final int number;
+    private int resetValue;
     // volatile should be enough to allow safe multi-threaded access
     // w/o the use of synchronized methods.  getValue and setValue
     // are the only methods here used by the register collection
     // (RegisterFile, Coprocessor0, Coprocessor1) methods.
     private volatile int value;
 
+    private final List<RegisterAccessListener> listeners = new ArrayList<>();
+
     /**
      *  Creates a new register with specified name, number, and value.
      *   @param n The name of the register.
      *   @param num The number of the register.
-     *   @param val The inital (and reset) value of the register.
+     *   @param val The initial (and reset) value of the register.
      */
     public Register(String n, int num, int val) {
         name = n;
@@ -72,7 +75,7 @@ public class Register extends Observable {
      *   @return value The value of the Register.
      */
     public synchronized int getValue() {
-        notifyAnyObservers(AccessNotice.READ);
+        notifyAnyListener(AccessNotice.AccessType.READ);
         return value;
     }
 
@@ -109,7 +112,7 @@ public class Register extends Observable {
     public synchronized int setValue(int val) {
         int old = value;
         value = val;
-        notifyAnyObservers(AccessNotice.WRITE);
+        notifyAnyListener(AccessNotice.AccessType.WRITE);
         return old;
     }
 
@@ -132,10 +135,19 @@ public class Register extends Observable {
     //
     // Method to notify any observers of register operation that has just occurred.
     //
-    private void notifyAnyObservers(int type) {
-        if (this.countObservers() > 0) { // && Globals.program != null) && Globals.program.inSteppedExecution()) {
-            this.setChanged();
-            this.notifyObservers(new RegisterAccessNotice(type, this.name));
+    private void notifyAnyListener(AccessNotice.AccessType type) {
+        List<RegisterAccessListener> listenersCopied = List.copyOf(listeners);
+
+        for (RegisterAccessListener listener : listenersCopied) {
+            listener.registerAccessed(new RegisterAccessNotice(type, this.name, this));
         }
+    }
+
+    public void addListener(RegisterAccessListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(RegisterAccessListener listener) {
+        listeners.remove(listener);
     }
 }

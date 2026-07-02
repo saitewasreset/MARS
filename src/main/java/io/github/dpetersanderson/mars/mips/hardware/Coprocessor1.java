@@ -1,8 +1,7 @@
 package io.github.dpetersanderson.mars.mips.hardware;
 
 import io.github.dpetersanderson.mars.Globals;
-import io.github.dpetersanderson.mars.util.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.util.Binary;
 
 /*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar
@@ -379,21 +378,21 @@ public class Coprocessor1 {
 
     /**
      *  Each individual register is a separate object and Observable.  This handy method
-     *  will add the given Observer to each one.
+     *  will add the given RegisterAccessListener to each one.
      */
-    public static void addRegistersObserver(Observer observer) {
-        for (int i = 0; i < registers.length; i++) {
-            registers[i].addObserver(observer);
+    public static void addRegistersListener(RegisterAccessListener listener) {
+        for (Register register : registers) {
+            register.addListener(listener);
         }
     }
 
     /**
      *  Each individual register is a separate object and Observable.  This handy method
-     *  will delete the given Observer from each one.
+     *  will delete the given RegisterAccessListener from each one.
      */
-    public static void deleteRegistersObserver(Observer observer) {
-        for (int i = 0; i < registers.length; i++) {
-            registers[i].deleteObserver(observer);
+    public static void removeRegistersListener(RegisterAccessListener listener) {
+        for (Register register : registers) {
+            register.addListener(listener);
         }
     }
 

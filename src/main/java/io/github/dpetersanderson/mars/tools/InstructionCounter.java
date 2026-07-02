@@ -33,15 +33,9 @@ import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstruction;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstructionFormat;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.util.Observable;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.JTextField;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  *
@@ -203,9 +197,9 @@ public class InstructionCounter extends AbstractMarsToolAndApplication {
     }
 
     //	@Override
-    protected void processMIPSUpdate(Observable resource, AccessNotice notice) {
+    protected void processMIPSUpdate(AccessNotice notice) {
         if (!notice.accessIsFromMIPS()) return;
-        if (notice.getAccessType() != AccessNotice.READ) return;
+        if (notice.getAccessType() != AccessNotice.AccessType.READ) return;
         MemoryAccessNotice m = (MemoryAccessNotice) notice;
         int a = m.getAddress();
         if (a == lastAddress) return;

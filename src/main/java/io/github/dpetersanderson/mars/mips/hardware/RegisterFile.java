@@ -4,7 +4,6 @@ import io.github.dpetersanderson.mars.Globals;
 import io.github.dpetersanderson.mars.assembler.SymbolTable;
 import io.github.dpetersanderson.mars.mips.instructions.Instruction;
 import io.github.dpetersanderson.mars.util.Binary;
-import java.util.Observer;
 
 /*
 Copyright (c) 2003-2008,  Pete Sanderson and Kenneth Vollmar
@@ -303,16 +302,17 @@ public class RegisterFile {
     }
 
     /**
-     *  Each individual register is a separate object and Observable.  This handy method
-     *  will add the given Observer to each one.  Currently does not apply to Program
+     *  Each individual register is a separate object.  This handy method
+     *  will add the given listener to each one.  Currently does not apply to Program
      *  Counter.
      */
-    public static void addRegistersObserver(Observer observer) {
-        for (int i = 0; i < regFile.length; i++) {
-            regFile[i].addObserver(observer);
+    public static void addRegistersListener(RegisterAccessListener listener) {
+        for (Register register : regFile) {
+            register.addListener(listener);
         }
-        hi.addObserver(observer);
-        lo.addObserver(observer);
+
+        hi.addListener(listener);
+        lo.addListener(listener);
     }
 
     /**
@@ -320,11 +320,12 @@ public class RegisterFile {
      *  will delete the given Observer from each one.  Currently does not apply to Program
      *  Counter.
      */
-    public static void deleteRegistersObserver(Observer observer) {
-        for (int i = 0; i < regFile.length; i++) {
-            regFile[i].deleteObserver(observer);
+    public static void deleteRegistersObserver(RegisterAccessListener listener) {
+        for (Register register : regFile) {
+            register.removeListener(listener);
         }
-        hi.deleteObserver(observer);
-        lo.deleteObserver(observer);
+
+        hi.removeListener(listener);
+        lo.removeListener(listener);
     }
 }

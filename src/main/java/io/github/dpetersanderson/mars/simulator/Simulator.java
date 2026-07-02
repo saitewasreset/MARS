@@ -2,12 +2,17 @@ package io.github.dpetersanderson.mars.simulator;
 
 import io.github.dpetersanderson.mars.*;
 import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.mips.instructions.*;
-import io.github.dpetersanderson.mars.util.*;
-import io.github.dpetersanderson.mars.venus.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.mips.instructions.BasicInstruction;
+import io.github.dpetersanderson.mars.util.Binary;
+import io.github.dpetersanderson.mars.util.SystemIO;
+import io.github.dpetersanderson.mars.venus.RunGoAction;
+import io.github.dpetersanderson.mars.venus.RunSpeedPanel;
+import io.github.dpetersanderson.mars.venus.RunStepAction;
+
 import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /*
 Copyright (c) 2003-2010,  Pete Sanderson and Kenneth Vollmar
@@ -42,7 +47,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * @author Pete Sanderson
  * @version August 2005
  **/
-public class Simulator extends Observable {
+public class Simulator {
     private SimThread simulatorThread;
     private static Simulator simulator = null; // Singleton object
     private static Runnable interactiveGUIUpdater = null;
@@ -60,6 +65,8 @@ public class Simulator extends Observable {
     public static final int NORMAL_TERMINATION = 4;
     public static final int CLIFF_TERMINATION = 5; // run off bottom of program
     public static final int PAUSE_OR_STOP = 6;
+
+    private final List<SimulatorListener> listeners = new ArrayList<>();
 
     /**
      * Returns the Simulator object
@@ -172,8 +179,7 @@ public class Simulator extends Observable {
     // by Stop button, by Pause button, by Step button, by runtime exception, by
     // instruction count limit, by breakpoint, or by end of simulation (truly done).
     private void notifyObserversOfExecutionStart(int maxSteps, int programCounter) {
-        this.setChanged();
-        this.notifyObservers(new SimulatorNotice(
+        this.notifyListeners(new SimulatorNotice(
                 SimulatorNotice.SIMULATOR_START,
                 maxSteps,
                 RunSpeedPanel.getInstance().getRunSpeed(),
@@ -181,12 +187,27 @@ public class Simulator extends Observable {
     }
 
     private void notifyObserversOfExecutionStop(int maxSteps, int programCounter) {
-        this.setChanged();
-        this.notifyObservers(new SimulatorNotice(
+        this.notifyListeners(new SimulatorNotice(
                 SimulatorNotice.SIMULATOR_STOP,
                 maxSteps,
                 RunSpeedPanel.getInstance().getRunSpeed(),
                 programCounter));
+    }
+
+    private void notifyListeners(SimulatorNotice notice) {
+        List<SimulatorListener> listenersCopied = new ArrayList<>(this.listeners);
+
+        for (SimulatorListener listener : listenersCopied) {
+            listener.stateChanged(notice);
+        }
+    }
+
+    public void addListener(SimulatorListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(SimulatorListener listener) {
+        listeners.remove(listener);
     }
 
     /**

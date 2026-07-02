@@ -1,13 +1,19 @@
 package io.github.dpetersanderson.mars.tools;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.util.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
+import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+import io.github.dpetersanderson.mars.util.Binary;
+
 import javax.swing.*;
-import javax.swing.JOptionPane;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Random;
 
 /**
  * Demo of Mars tool capability.    Ken Vollmar, 27 Oct 2006  KenVollmar@missouristate.edu
@@ -15,7 +21,7 @@ import javax.swing.JOptionPane;
  * Players will read and write MIPS memory-mapped locations to move and regain energy.
  * See accompanying documentation for memory-mapped addresses, rules of the game, etc.
  */
-public class ScavengerHunt implements Observer, MarsTool {
+public class ScavengerHunt implements MemoryAccessListener, MarsTool {
     private static final int GRAPHIC_WIDTH = 712;
     private static final int GRAPHIC_HEIGHT = 652;
 
@@ -74,6 +80,240 @@ public class ScavengerHunt implements Observer, MarsTool {
     private static int accessCounter = 0;
     private static int playerID = ADMINISTRATOR_ID; // Range 0...(NUM_PLAYERS-1), plus ADMINISTRATOR_ID
     private boolean KENVDEBUG = false;
+
+    @Override
+    public void memoryAccessed(MemoryAccessNotice notice) {
+        int address;
+        int data;
+        boolean isWrite;
+        boolean isRead;
+        int energyLevel;
+
+        address = notice.getAddress();
+        data = notice.getValue();
+        isWrite = (notice.getAccessType() == AccessNotice.AccessType.WRITE);
+        isRead = !isWrite;
+
+        // If we are only interested in MIPS memory WRITES, then just return on READS.
+        // That's a matter of policy: perhaps players should be prohibited from
+        // reading each other's memory spaces.
+        if (!isWrite) return;
+
+        // System.out.println("ScavengerHunt.update: observed write access by player " + playerID + " on Mem[ " +
+        //            Binary.intToHexString(address) + " ]");
+
+        // TBD TBD DEBUGGING SPECIAL
+        /*
+        accessCounter++;
+        if (accessCounter > 100000)
+        {
+          System.out.println("\n\nScavengerHunt.update: hardcoded exit to prevent runaway" );
+          System.exit(0);
+        }
+        */
+        // TBD TBD DEBUGGING SPECIAL
+
+        // Take the appropriate action, depending on data written and priority of user.
+        if (isWrite && playerID == ADMINISTRATOR_ID && address == ADDR_GAME_ON) {
+
+            // ADMINISTRATOR_ID can write to any location, because it's trusted software
+            // System.out.println( "ScavengerHunt.update(): Administrator wrote to  Mem[ " +
+            //   Binary.intToHexString(address) + " ] == " + Binary.intToHexString(data) );
+
+            // No need to authenticate since administrator runs first, then
+            // this location has no effect thereafter.
+            GameOn = true;
+            // System.out.println( "ScavengerHunt.update(): Administrator wrote GAME_ON!" );
+
+            initializeScavengerData();
+        } else if (isWrite && address == ADDR_AUTHENTICATION) {
+            // Anyone is allowed to write to the authentication location -- but if that value is not
+            // correct (authentic) then action can be taken.
+            // NO ACTION HERE
+        } else if (isWrite && address == ADDR_NUM_TURNS) {
+            // Anyone is allowed to write to the "number of turns" location
+            // NO ACTION HERE
+        } else if (isWrite
+                && address == ADDR_PLAYER_ID) // if the data written will change the PlayerID, authenticate the write
+        {
+            // 2006 Oct 31  dummy validation scheme, suitable for distribution
+            // to students for development: Initial authentication value is zero.
+            // Each successive authentication value is one greater
+            // than the preceding value, modulo 0xffffffff.
+            authenticationValue += 1; // "server's" updated version of the authenticationValue
+            if (toolGetWord(ADDR_AUTHENTICATION)
+                    == authenticationValue) // Compare to "client's" version of the authenticationValue
+            {
+                playerID = toolGetWord(ADDR_PLAYER_ID); // Use the new player ID
+                // System.out.println( "ScavengerHunt.update(): New playerID of " + playerID);
+            } else {
+                System.out.println("ScavengerHunt.update(): Invalid write of player ID! \nPlayer " + playerID
+                        + " tried to write.  Expected:   " + Binary.intToHexString(authenticationValue)
+                        + ", got:  "
+                        + Binary.intToHexString(toolGetWord(ADDR_AUTHENTICATION)) + "\n");
+            }
+        } else if (isWrite
+                && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_MOVE_READY)
+                && data != 0) //  Player wrote data to his/her assigned MoveReady location
+        {
+            /*
+            System.out.println(" ******** ScavengerHunt.update: Player " + playerID + " requests move to (" +
+                           toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) + ", " +
+                           toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y) + ")" );
+               */
+
+            energyLevel = toolReadPlayerData(playerID, OFFSET_ENERGY); // find if player has energy
+            if (energyLevel <= 0) // No energy. Player not allowed to move
+            {
+                // JOptionPane.showMessageDialog(null, "Player " + playerID + " can't move -- no energy.\n" +
+                //                                    "(This msg. in ScavengerHunt.update()" );
+                // System.out.println("Player " + playerID + " can't move -- no energy.");
+                return;
+            }
+
+            if (toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) < 0
+                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) > GRAPHIC_WIDTH
+                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y) < 0
+                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y)
+                            > GRAPHIC_HEIGHT) // Out of bounds. Player not allowed to move
+            {
+                // JOptionPane.showMessageDialog(null, "Player " + playerID + " can't move -- out of bounds.\n" +
+                //                                    "(This msg. in ScavengerHunt.update()" );
+                System.out.println("Player " + playerID + " can't move -- out of bounds.");
+                return;
+            }
+
+            // Verify movement is allowed (does not exceed maximum movement)
+            if (Math.sqrt(Math.pow(
+                                    toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X)
+                                            - toolReadPlayerData(playerID, OFFSET_MOVE_TO_X),
+                                    2.0)
+                            + Math.pow(
+                                    toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y)
+                                            - toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y),
+                                    2.0))
+                    <= MAX_MOVE_DISTANCE) {
+
+                // Write the new position of the player
+                toolWritePlayerData(playerID, OFFSET_WHERE_AM_I_X, toolReadPlayerData(playerID, OFFSET_MOVE_TO_X));
+                toolWritePlayerData(playerID, OFFSET_WHERE_AM_I_Y, toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y));
+                pd[playerID].setWhereAmI(
+                        toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X),
+                        toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y));
+
+                // Write the new (reduced) energy of the player
+                // Policy: Constant ENERGY_PER_MOVE for any move regardless of length.
+                toolWritePlayerData(
+                        playerID, OFFSET_ENERGY, toolReadPlayerData(playerID, OFFSET_ENERGY) - ENERGY_PER_MOVE);
+                pd[playerID].setEnergy(toolReadPlayerData(playerID, OFFSET_ENERGY));
+
+                // TBD FUTURE --- need to keep track of locations that the player has actually got to
+                // -- be able to tell that the player has reached a certain location
+                // -- be able to tell that the player has reached every location
+                for (int i = 0; i < NUM_LOCATIONS; i++) {
+                    if (toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X) == loc[i].X
+                            && toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y) == loc[i].Y) {
+                        pd[playerID].setVisited(i); // Player has visited this location
+                    }
+                }
+
+                // Write 0 to "move ready" location, signifying that the move request was processed
+                // Here we must write to the same location that we're now reading from, and we
+                // can't cause an infinite loop. Temporarily switch player ID to that of the administrator,
+                // and restore ID after the write. With the playerID set to administrator, the event
+                // caused by the write will not go through this same logic.
+                int tempPlayerID = playerID;
+                playerID = ADMINISTRATOR_ID;
+                toolWritePlayerData(tempPlayerID, OFFSET_MOVE_READY, 0);
+                playerID = tempPlayerID;
+
+            } else {
+                System.out.println("Player " + playerID + " can't move -- exceeded max. movement.");
+                System.out.println("    Player is at (" + toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X)
+                        + ", " + toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y)
+                        + "), wants to go to (" + toolReadPlayerData(playerID, OFFSET_MOVE_TO_X)
+                        + "," + toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y)
+                        + ")");
+
+                return;
+            }
+
+        } // end if Player wrote nonzero data to his/her assigned MoveReady location
+        else if (isWrite
+                && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_TASK_COMPLETE)
+                && data != 0) //  Player wrote data to his/her assigned TaskComplete location
+        {
+
+            //  System.out.println(" ******** ScavengerHunt.update: Player " + playerID + " requests more energy (task
+            // complete)" );
+
+            // Player indicates he/she has completed a task. Check to see if task is completed correctly.
+            // Task for this assignment: Numbers are sorted in ascending order.
+            int prevData, currentData;
+            prevData = toolReadPlayerData(playerID, OFFSET_TASK_ARRAY);
+            for (int i = 1; i < SIZE_OF_TASK; i++) {
+                currentData = toolReadPlayerData(playerID, OFFSET_TASK_ARRAY + (i * 4));
+                if (prevData > currentData) {
+                    // Task failure! Task not completed correctly!
+                    System.out.println("Whoops! Player has NOT completed task correctly");
+                    return;
+                }
+                prevData = currentData; // update for next iteration
+            }
+
+            // If program flow has reached this point, the task is completed correctly.
+            // Award energy, reset TaskComplete, and set new task values for future use.
+            toolWritePlayerData(playerID, OFFSET_ENERGY, ENERGY_AWARD);
+            toolWritePlayerData(playerID, OFFSET_TASK_COMPLETE, 0);
+            for (int j = 0; j < SIZE_OF_TASK; j++) // Initialize the task data for this player
+            {
+                toolWritePlayerData(playerID, OFFSET_TASK_ARRAY + (j * 4), (int) (randomStream.nextDouble()
+                        * Integer.MAX_VALUE)); // Set a random number for the task (sort them)
+            }
+            // System.out.println("Player has  completed task correctly and been awarded energy");
+            pd[playerID].setEnergy(ENERGY_AWARD);
+
+        } // end if Player wrote nonzero data to his/her assigned TaskComplete location
+        else if (isWrite && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_PLAYER_COLOR))
+        //  Player wrote data to his/her assigned PlayerColor location
+        {
+            // PPlayer indicates he/she has changed the color of display
+            pd[playerID].setColor(toolReadPlayerData(playerID, OFFSET_PLAYER_COLOR));
+        }
+
+        // TBD TBD TBD
+        // TBD TBD TBD
+        // TBD TBD TBD
+        // Yet to be implemented: Enforce only one write of MoveRequest per player per turn
+
+        else if (isWrite
+                && address >= (ADDR_BASE + (playerID * MEM_PER_PLAYER))
+                && address < (ADDR_BASE + ((playerID + 1) * MEM_PER_PLAYER)))
+        //  Player wrote data elsewhere within his/her assigned location
+        {
+            // Player can write to any location within his/her assigned location
+            // System.out.println( "ScavengerHunt.update(): Player " + playerID + " wrote to valid location");
+        } else if (isWrite && playerID == ADMINISTRATOR_ID) {
+            // ADMINISTRATOR_ID can write to any location, because it's trusted software
+            // System.out.println( "ScavengerHunt.update(): Administrator wrote to  Mem[ " +
+            //     Binary.intToHexString(address) + " ] == " + Binary.intToHexString(data) );
+        } else if (isWrite) {
+            // This player is writing outside his/her assigned memory location
+            /*
+            System.out.println("ScavengerHunt.update(): Player " + playerID + " writing outside assigned mem. loc. at address " +
+                                Binary.intToHexString(address) +
+                                " -- not implemented!");
+                    */
+
+            JOptionPane.showMessageDialog(
+                    null,
+                    "ScavengerHunt.update(): Player " + playerID + " writing outside assigned mem. loc. at address "
+                            + Binary.intToHexString(address)
+                            + " -- not implemented!");
+        } else if (isRead) {
+            // Policy: anyone can read any location.
+        }
+    }
 
     // Used to define (X,Y) coordinate of a location to which ScavengerHunt players
     // will travel.
@@ -439,259 +679,13 @@ public class ScavengerHunt implements Observer, MarsTool {
         // Register as observer for a particular MIPS data range. Other ranges
         // are not used by this Tool.
         try {
-            Globals.memory.addObserver(this, 0xffff8000, 0xfffffff0); // must be on word boundaries
+            Globals.memory.addMemoryAccessListener(this, 0xffff8000, 0xfffffff0); // must be on word boundaries
         } catch (AddressErrorException e) {
             System.out.println(
                     "\n\nScavengerHunt.action: Globals.memory.addObserver caused AddressErrorException.\n\n");
             System.exit(0);
         }
     } // end ScavengerHunt.action()
-
-    /*
-     * This method observes MIPS memory for directives to modify ScavengerHunt activity (that is,
-     * MIPS program write to MMIO) and updates instance variables to reflect that directive.
-     * This method takes action when it "observes" MIPS memory changes -- but this method
-     * must not write to those memory locations in order to prevent an infinite cycle of events.
-     * This method observes certain locations and then may (and does) write to OTHER locations.
-     */
-    public void update(Observable o, Object arg) {
-        MemoryAccessNotice notice;
-        int address;
-        int data;
-        boolean isWrite;
-        boolean isRead;
-        int energyLevel;
-
-        // Here we are only interested in MemoryAccessNotice. For anything else, just return.
-        if (!(arg instanceof MemoryAccessNotice)) return;
-
-        // Get pertinent information about this MemoryAccessNotice.
-        notice = (MemoryAccessNotice) arg;
-        address = notice.getAddress();
-        data = notice.getValue();
-        isWrite = (notice.getAccessType() == AccessNotice.WRITE);
-        isRead = !isWrite;
-
-        // If we are only interested in MIPS memory WRITES, then just return on READS.
-        // That's a matter of policy: perhaps players should be prohibited from
-        // reading each other's memory spaces.
-        if (!isWrite) return;
-
-        // System.out.println("ScavengerHunt.update: observed write access by player " + playerID + " on Mem[ " +
-        //            Binary.intToHexString(address) + " ]");
-
-        // TBD TBD DEBUGGING SPECIAL
-        /*
-        accessCounter++;
-        if (accessCounter > 100000)
-        {
-          System.out.println("\n\nScavengerHunt.update: hardcoded exit to prevent runaway" );
-          System.exit(0);
-        }
-        */
-        // TBD TBD DEBUGGING SPECIAL
-
-        // Take the appropriate action, depending on data written and priority of user.
-        if (isWrite && playerID == ADMINISTRATOR_ID && address == ADDR_GAME_ON) {
-
-            // ADMINISTRATOR_ID can write to any location, because it's trusted software
-            // System.out.println( "ScavengerHunt.update(): Administrator wrote to  Mem[ " +
-            //   Binary.intToHexString(address) + " ] == " + Binary.intToHexString(data) );
-
-            // No need to authenticate since administrator runs first, then
-            // this location has no effect thereafter.
-            GameOn = true;
-            // System.out.println( "ScavengerHunt.update(): Administrator wrote GAME_ON!" );
-
-            initializeScavengerData();
-        } else if (isWrite && address == ADDR_AUTHENTICATION) {
-            // Anyone is allowed to write to the authentication location -- but if that value is not
-            // correct (authentic) then action can be taken.
-            // NO ACTION HERE
-        } else if (isWrite && address == ADDR_NUM_TURNS) {
-            // Anyone is allowed to write to the "number of turns" location
-            // NO ACTION HERE
-        } else if (isWrite
-                && address == ADDR_PLAYER_ID) // if the data written will change the PlayerID, authenticate the write
-        {
-            // 2006 Oct 31  dummy validation scheme, suitable for distribution
-            // to students for development: Initial authentication value is zero.
-            // Each successive authentication value is one greater
-            // than the preceding value, modulo 0xffffffff.
-            authenticationValue += 1; // "server's" updated version of the authenticationValue
-            if (toolGetWord(ADDR_AUTHENTICATION)
-                    == authenticationValue) // Compare to "client's" version of the authenticationValue
-            {
-                playerID = toolGetWord(ADDR_PLAYER_ID); // Use the new player ID
-                // System.out.println( "ScavengerHunt.update(): New playerID of " + playerID);
-            } else {
-                System.out.println("ScavengerHunt.update(): Invalid write of player ID! \nPlayer " + playerID
-                        + " tried to write.  Expected:   " + Binary.intToHexString(authenticationValue)
-                        + ", got:  "
-                        + Binary.intToHexString(toolGetWord(ADDR_AUTHENTICATION)) + "\n");
-            }
-        } else if (isWrite
-                && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_MOVE_READY)
-                && data != 0) //  Player wrote data to his/her assigned MoveReady location
-        {
-            /*
-            System.out.println(" ******** ScavengerHunt.update: Player " + playerID + " requests move to (" +
-                           toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) + ", " +
-                           toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y) + ")" );
-               */
-
-            energyLevel = toolReadPlayerData(playerID, OFFSET_ENERGY); // find if player has energy
-            if (energyLevel <= 0) // No energy. Player not allowed to move
-            {
-                // JOptionPane.showMessageDialog(null, "Player " + playerID + " can't move -- no energy.\n" +
-                //                                    "(This msg. in ScavengerHunt.update()" );
-                // System.out.println("Player " + playerID + " can't move -- no energy.");
-                return;
-            }
-
-            if (toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) < 0
-                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_X) > GRAPHIC_WIDTH
-                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y) < 0
-                    || toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y)
-                            > GRAPHIC_HEIGHT) // Out of bounds. Player not allowed to move
-            {
-                // JOptionPane.showMessageDialog(null, "Player " + playerID + " can't move -- out of bounds.\n" +
-                //                                    "(This msg. in ScavengerHunt.update()" );
-                System.out.println("Player " + playerID + " can't move -- out of bounds.");
-                return;
-            }
-
-            // Verify movement is allowed (does not exceed maximum movement)
-            if (Math.sqrt(Math.pow(
-                                    toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X)
-                                            - toolReadPlayerData(playerID, OFFSET_MOVE_TO_X),
-                                    2.0)
-                            + Math.pow(
-                                    toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y)
-                                            - toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y),
-                                    2.0))
-                    <= MAX_MOVE_DISTANCE) {
-
-                // Write the new position of the player
-                toolWritePlayerData(playerID, OFFSET_WHERE_AM_I_X, toolReadPlayerData(playerID, OFFSET_MOVE_TO_X));
-                toolWritePlayerData(playerID, OFFSET_WHERE_AM_I_Y, toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y));
-                pd[playerID].setWhereAmI(
-                        toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X),
-                        toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y));
-
-                // Write the new (reduced) energy of the player
-                // Policy: Constant ENERGY_PER_MOVE for any move regardless of length.
-                toolWritePlayerData(
-                        playerID, OFFSET_ENERGY, toolReadPlayerData(playerID, OFFSET_ENERGY) - ENERGY_PER_MOVE);
-                pd[playerID].setEnergy(toolReadPlayerData(playerID, OFFSET_ENERGY));
-
-                // TBD FUTURE --- need to keep track of locations that the player has actually got to
-                // -- be able to tell that the player has reached a certain location
-                // -- be able to tell that the player has reached every location
-                for (int i = 0; i < NUM_LOCATIONS; i++) {
-                    if (toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X) == loc[i].X
-                            && toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y) == loc[i].Y) {
-                        pd[playerID].setVisited(i); // Player has visited this location
-                    }
-                }
-
-                // Write 0 to "move ready" location, signifying that the move request was processed
-                // Here we must write to the same location that we're now reading from, and we
-                // can't cause an infinite loop. Temporarily switch player ID to that of the administrator,
-                // and restore ID after the write. With the playerID set to administrator, the event
-                // caused by the write will not go through this same logic.
-                int tempPlayerID = playerID;
-                playerID = ADMINISTRATOR_ID;
-                toolWritePlayerData(tempPlayerID, OFFSET_MOVE_READY, 0);
-                playerID = tempPlayerID;
-
-            } else {
-                System.out.println("Player " + playerID + " can't move -- exceeded max. movement.");
-                System.out.println("    Player is at (" + toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_X)
-                        + ", " + toolReadPlayerData(playerID, OFFSET_WHERE_AM_I_Y)
-                        + "), wants to go to (" + toolReadPlayerData(playerID, OFFSET_MOVE_TO_X)
-                        + "," + toolReadPlayerData(playerID, OFFSET_MOVE_TO_Y)
-                        + ")");
-
-                return;
-            }
-
-        } // end if Player wrote nonzero data to his/her assigned MoveReady location
-        else if (isWrite
-                && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_TASK_COMPLETE)
-                && data != 0) //  Player wrote data to his/her assigned TaskComplete location
-        {
-
-            //  System.out.println(" ******** ScavengerHunt.update: Player " + playerID + " requests more energy (task
-            // complete)" );
-
-            // Player indicates he/she has completed a task. Check to see if task is completed correctly.
-            // Task for this assignment: Numbers are sorted in ascending order.
-            int prevData, currentData;
-            prevData = toolReadPlayerData(playerID, OFFSET_TASK_ARRAY);
-            for (int i = 1; i < SIZE_OF_TASK; i++) {
-                currentData = toolReadPlayerData(playerID, OFFSET_TASK_ARRAY + (i * 4));
-                if (prevData > currentData) {
-                    // Task failure! Task not completed correctly!
-                    System.out.println("Whoops! Player has NOT completed task correctly");
-                    return;
-                }
-                prevData = currentData; // update for next iteration
-            }
-
-            // If program flow has reached this point, the task is completed correctly.
-            // Award energy, reset TaskComplete, and set new task values for future use.
-            toolWritePlayerData(playerID, OFFSET_ENERGY, ENERGY_AWARD);
-            toolWritePlayerData(playerID, OFFSET_TASK_COMPLETE, 0);
-            for (int j = 0; j < SIZE_OF_TASK; j++) // Initialize the task data for this player
-            {
-                toolWritePlayerData(playerID, OFFSET_TASK_ARRAY + (j * 4), (int) (randomStream.nextDouble()
-                        * Integer.MAX_VALUE)); // Set a random number for the task (sort them)
-            }
-            // System.out.println("Player has  completed task correctly and been awarded energy");
-            pd[playerID].setEnergy(ENERGY_AWARD);
-
-        } // end if Player wrote nonzero data to his/her assigned TaskComplete location
-        else if (isWrite && address == (ADDR_BASE + (playerID * MEM_PER_PLAYER) + OFFSET_PLAYER_COLOR))
-        //  Player wrote data to his/her assigned PlayerColor location
-        {
-            // PPlayer indicates he/she has changed the color of display
-            pd[playerID].setColor(toolReadPlayerData(playerID, OFFSET_PLAYER_COLOR));
-        }
-
-        // TBD TBD TBD
-        // TBD TBD TBD
-        // TBD TBD TBD
-        // Yet to be implemented: Enforce only one write of MoveRequest per player per turn
-
-        else if (isWrite
-                && address >= (ADDR_BASE + (playerID * MEM_PER_PLAYER))
-                && address < (ADDR_BASE + ((playerID + 1) * MEM_PER_PLAYER)))
-        //  Player wrote data elsewhere within his/her assigned location
-        {
-            // Player can write to any location within his/her assigned location
-            // System.out.println( "ScavengerHunt.update(): Player " + playerID + " wrote to valid location");
-        } else if (isWrite && playerID == ADMINISTRATOR_ID) {
-            // ADMINISTRATOR_ID can write to any location, because it's trusted software
-            // System.out.println( "ScavengerHunt.update(): Administrator wrote to  Mem[ " +
-            //     Binary.intToHexString(address) + " ] == " + Binary.intToHexString(data) );
-        } else if (isWrite) {
-            // This player is writing outside his/her assigned memory location
-            /*
-            System.out.println("ScavengerHunt.update(): Player " + playerID + " writing outside assigned mem. loc. at address " +
-                                Binary.intToHexString(address) +
-                                " -- not implemented!");
-                    */
-
-            JOptionPane.showMessageDialog(
-                    null,
-                    "ScavengerHunt.update(): Player " + playerID + " writing outside assigned mem. loc. at address "
-                            + Binary.intToHexString(address)
-                            + " -- not implemented!");
-        } else if (isRead) {
-            // Policy: anyone can read any location.
-        }
-    } // end ScavengerHunt.update()
 
     // Write one word to MIPS memory. This is a wrapper to isolate the try..catch blocks.
     private void toolSetWord(int address, int data) {

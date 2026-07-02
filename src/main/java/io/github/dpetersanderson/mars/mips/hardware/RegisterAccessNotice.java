@@ -36,14 +36,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * @version July 2005
  */
 public class RegisterAccessNotice extends AccessNotice {
-    private String registerName;
+    private final String registerName;
+    private final Register register;
 
     /** Constructor will be called only within this package, so assume
      *  register number is in valid range.
      */
-    RegisterAccessNotice(int type, String registerName) {
+    RegisterAccessNotice(AccessNotice.AccessType type, String registerName, Register register) {
         super(type);
         this.registerName = registerName;
+        this.register = register;
     }
     /** Fetch the register number of register accessed. */
     public String getRegisterName() {
@@ -51,6 +53,10 @@ public class RegisterAccessNotice extends AccessNotice {
     }
     /** String representation indicates access type and which register */
     public String toString() {
-        return ((this.getAccessType() == AccessNotice.READ) ? "R " : "W ") + "Reg " + registerName;
+        return ((this.getAccessType() == AccessNotice.AccessType.READ) ? "R " : "W ") + "Reg " + registerName;
+    }
+
+    public Register getRegister() {
+        return register;
     }
 }

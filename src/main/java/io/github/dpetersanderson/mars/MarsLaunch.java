@@ -8,12 +8,15 @@ import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.FilenameFinder;
 import io.github.dpetersanderson.mars.util.MemoryDump;
 import io.github.dpetersanderson.mars.venus.VenusUI;
+
+import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.*;
-import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 /*
 Copyright (c) 2003-2012,  Pete Sanderson and Kenneth Vollmar
@@ -342,23 +345,22 @@ public class MarsLaunch {
     // DPS 19 July 2012
     private void establishObserver() {
         if (countInstructions) {
-            Observer instructionCounter = new Observer() {
+            MemoryAccessListener instructionCounter = new MemoryAccessListener() {
                 private int lastAddress = 0;
 
-                public void update(Observable o, Object obj) {
-                    if (obj instanceof AccessNotice notice) {
-                        if (!notice.accessIsFromMIPS()) return;
-                        if (notice.getAccessType() != AccessNotice.READ) return;
-                        MemoryAccessNotice m = (MemoryAccessNotice) notice;
-                        int a = m.getAddress();
-                        if (a == lastAddress) return;
-                        lastAddress = a;
-                        instructionCount++;
-                    }
+                public void memoryAccessed(MemoryAccessNotice notice) {
+                    if (!notice.accessIsFromMIPS()) return;
+                    if (notice.getAccessType() != AccessNotice.AccessType.READ) return;
+
+                    int a = notice.getAddress();
+                    if (a == lastAddress) return;
+                    lastAddress = a;
+                    instructionCount++;
                 }
             };
             try {
-                Globals.memory.addObserver(instructionCounter, Memory.textBaseAddress, Memory.textLimitAddress);
+                Globals.memory.addMemoryAccessListener(
+                        instructionCounter, Memory.textBaseAddress, Memory.textLimitAddress);
             } catch (AddressErrorException aee) {
                 out.println("Internal error: MarsLaunch uses incorrect text segment address for instruction observer");
             }

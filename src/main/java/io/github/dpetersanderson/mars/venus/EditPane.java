@@ -1,17 +1,23 @@
 package io.github.dpetersanderson.mars.venus;
 
-import io.github.dpetersanderson.mars.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.Settings;
+import io.github.dpetersanderson.mars.mips.hardware.SettingsListener;
 import io.github.dpetersanderson.mars.venus.editors.MARSTextEditingArea;
 import io.github.dpetersanderson.mars.venus.editors.generic.GenericTextArea;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.JEditBasedTextArea;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.text.*;
-import java.util.*;
+
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.undo.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoManager;
+import java.awt.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 
 /*
 Copyright (c) 2003-2011,  Pete Sanderson and Kenneth Vollmar
@@ -48,7 +54,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  duties were split between EditPane and the new EditTabbedPane class.
  *   @author Sanderson and Bumgarner
  */
-public class EditPane extends JPanel implements Observer {
+public class EditPane extends JPanel implements SettingsListener {
 
     private MARSTextEditingArea sourceCode;
     private VenusUI mainUI;
@@ -70,8 +76,8 @@ public class EditPane extends JPanel implements Observer {
         // user.dir, user's current working directory, is guaranteed to have a value
         currentDirectoryPath = System.getProperty("user.dir");
         // mainUI.editor = new Editor(mainUI);
-        // We want to be notified of editor font changes! See update() below.
-        Globals.getSettings().addObserver(this);
+        // We want to be notified of editor font changes! See settingChanged() below.
+        Globals.getSettings().addListener(this);
         this.fileStatus = new FileStatus();
         lineNumbers = new JLabel();
 
@@ -563,11 +569,18 @@ public class EditPane extends JPanel implements Observer {
         return sourceCode.doReplaceAll(find, replace, caseSensitive);
     }
 
-    /**
-     *  Update, if source code is visible, when Font setting changes.
-     *  This method is specified by the Observer interface.
+    /* Private helper method.
+     * Determine font to use for editor line number display, given current
+     * font for source code.
      */
-    public void update(Observable fontChanger, Object arg) {
+    private Font getLineNumberFont(Font sourceFont) {
+        return (sourceCode.getFont().getStyle() == Font.PLAIN)
+                ? sourceFont
+                : new Font(sourceFont.getFamily(), Font.PLAIN, sourceFont.getSize());
+    }
+
+    @Override
+    public void settingChanged() {
         sourceCode.setFont(Globals.getSettings().getEditorFont());
         sourceCode.setLineHighlightEnabled(
                 Globals.getSettings().getBooleanSetting(Settings.EDITOR_CURRENT_LINE_HIGHLIGHTING));
@@ -585,15 +598,5 @@ public class EditPane extends JPanel implements Observer {
         // the source lines.
         lineNumbers.setFont(getLineNumberFont(sourceCode.getFont()));
         lineNumbers.revalidate();
-    }
-
-    /* Private helper method.
-     * Determine font to use for editor line number display, given current
-     * font for source code.
-     */
-    private Font getLineNumberFont(Font sourceFont) {
-        return (sourceCode.getFont().getStyle() == Font.PLAIN)
-                ? sourceFont
-                : new Font(sourceFont.getFamily(), Font.PLAIN, sourceFont.getSize());
     }
 }

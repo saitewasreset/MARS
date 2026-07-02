@@ -36,14 +36,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * @version July 2005
  */
 public class MemoryAccessNotice extends AccessNotice {
-    private int address;
-    private int length;
-    private int value;
+    private final int address;
+    private final int length;
+    private final int value;
 
     /** Constructor will be called only within this package, so assume
      *  address and length are in valid ranges.
      */
-    MemoryAccessNotice(int type, int address, int length, int value) {
+    MemoryAccessNotice(AccessNotice.AccessType type, int address, int length, int value) {
         super(type);
         this.address = address;
         this.length = length;
@@ -52,7 +52,7 @@ public class MemoryAccessNotice extends AccessNotice {
     /** Constructor will be called only within this package, so assume
      *  address is in valid range.
      */
-    public MemoryAccessNotice(int type, int address, int value) {
+    public MemoryAccessNotice(AccessNotice.AccessType type, int address, int value) {
         super(type);
         this.address = address;
         this.length = Memory.WORD_LENGTH_BYTES;
@@ -72,7 +72,7 @@ public class MemoryAccessNotice extends AccessNotice {
     }
     /** String representation indicates access type, address and length in bytes */
     public String toString() {
-        return ((this.getAccessType() == AccessNotice.READ) ? "R " : "W ") + "Mem " + address + " " + length + "B = "
-                + value;
+        return ((this.getAccessType() == AccessNotice.AccessType.READ) ? "R " : "W ") + "Mem " + address + " " + length
+                + "B = " + value;
     }
 }

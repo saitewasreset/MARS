@@ -1,16 +1,21 @@
 package io.github.dpetersanderson.mars.venus;
 
-import io.github.dpetersanderson.mars.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.Settings;
 import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.simulator.*;
-import io.github.dpetersanderson.mars.util.*;
+import io.github.dpetersanderson.mars.simulator.Simulator;
+import io.github.dpetersanderson.mars.simulator.SimulatorNotice;
+import io.github.dpetersanderson.mars.util.Binary;
+
+import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.event.*;
-import javax.swing.table.*;
+import java.util.Date;
 
 /*
 Copyright (c) 2003-2013,  Pete Sanderson and Kenneth Vollmar
@@ -44,7 +49,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  Represents the Data Segment window, which is a type of JInternalFrame.
  *   @author Sanderson and Bumgarner
  **/
-public class DataSegmentWindow extends JInternalFrame implements Observer {
+public class DataSegmentWindow extends JInternalFrame
+        implements SimulatorListener, MemoryAccessListener, SettingsListener {
 
     private static final String[] dataSegmentNames = {"Data", "Stack", "Kernel"};
     private static Object[][] dataData;
@@ -106,9 +112,9 @@ public class DataSegmentWindow extends JInternalFrame implements Observer {
     public DataSegmentWindow(NumberDisplayBaseChooser[] choosers) {
         super("Data Segment", true, false, true, true);
 
-        Simulator.getInstance().addObserver(this);
+        Simulator.getInstance().addListener(this);
         settings = Globals.getSettings();
-        settings.addObserver(this);
+        settings.addListener(this);
 
         homeAddress = Globals.memory.dataBaseAddress; // address for Home button
         firstAddress = homeAddress; // first address to display at any given time
@@ -834,47 +840,33 @@ public class DataSegmentWindow extends JInternalFrame implements Observer {
         return lowAddress;
     }
 
-    /** Required by Observer interface.  Called when notified by an Observable that we are registered with.
-     * Observables include:
-     *   The Simulator object, which lets us know when it starts and stops running
-     *   A delegate of the Memory object, which lets us know of memory operations
-     * The Simulator keeps us informed of when simulated MIPS execution is active.
-     * This is the only time we care about memory operations.
-     * @param observable The Observable object who is notifying us
-     * @param obj Auxiliary object with additional information.
-     */
-    public void update(Observable observable, Object obj) {
-        if (observable == io.github.dpetersanderson.mars.simulator.Simulator.getInstance()) {
-            SimulatorNotice notice = (SimulatorNotice) obj;
-            if (notice.getAction() == SimulatorNotice.SIMULATOR_START) {
-
-                // Simulated MIPS execution starts.  Respond to memory changes if running in timed
-                // or stepped mode.
-                if (notice.getRunSpeed() != RunSpeedPanel.UNLIMITED_SPEED || notice.getMaxSteps() == 1) {
-                    Memory.getInstance().addObserver(this);
-                    addressHighlighting = true;
-                }
-            } else {
-                // Simulated MIPS execution stops.  Stop responding.
-                Memory.getInstance().deleteObserver(this);
+    @Override
+    public void stateChanged(SimulatorNotice notice) {
+        if (notice.getAction() == SimulatorNotice.SIMULATOR_START) {
+            // Simulated MIPS execution starts.  Respond to memory changes if running in timed
+            // or stepped mode.
+            if (notice.getRunSpeed() != RunSpeedPanel.UNLIMITED_SPEED || notice.getMaxSteps() == 1) {
+                Memory.getInstance().addMemoryAccessListener(this);
+                addressHighlighting = true;
             }
-        } else if (observable == settings) {
-            // Suspended work in progress. Intended to disable combobox item for text segment. DPS 9-July-2013.
-            // baseAddressSelector.getModel().getElementAt(TEXT_BASE_ADDRESS_INDEX)
-            // *.setEnabled(settings.getBooleanSetting(Settings.SELF_MODIFYING_CODE_ENABLED));
-        } else if (obj
-                instanceof
-                MemoryAccessNotice) { // NOTE: observable != Memory.getInstance() because Memory class delegates
-            // notification duty.
-            MemoryAccessNotice access = (MemoryAccessNotice) obj;
-            if (access.getAccessType() == AccessNotice.WRITE) {
-                int address = access.getAddress();
-                // Use the same highlighting technique as for Text Segment -- see
-                // AddressCellRenderer class below.
-                this.highlightCellForAddress(address);
-            }
+        } else {
+            // Simulated MIPS execution stops.  Stop responding.
+            Memory.getInstance().removeMemoryAccessListener(this);
         }
     }
+
+    @Override
+    public void memoryAccessed(MemoryAccessNotice notice) {
+        if (notice.getAccessType() == AccessNotice.AccessType.WRITE) {
+            int address = notice.getAddress();
+            // Use the same highlighting technique as for Text Segment -- see
+            // AddressCellRenderer class below.
+            this.highlightCellForAddress(address);
+        }
+    }
+
+    @Override
+    public void settingChanged() {}
 
     ///////////////////////////////////////////////////////////////////////////////
     // Class defined to address apparent Javax.swing.JComboBox bug: when selection is

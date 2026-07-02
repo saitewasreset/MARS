@@ -12,27 +12,16 @@ import io.github.dpetersanderson.mars.venus.RunAssembleAction;
 import io.github.dpetersanderson.mars.venus.RunBackstepAction;
 import io.github.dpetersanderson.mars.venus.RunStepAction;
 import io.github.dpetersanderson.mars.venus.VenusUI;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.GridBagLayout;
-import java.awt.Image;
-import java.awt.MouseInfo;
-import java.awt.PointerInfo;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
@@ -40,25 +29,9 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Observable;
 import java.util.Vector;
-import javax.imageio.ImageIO;
-import javax.swing.Action;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JToolBar;
-import javax.swing.KeyStroke;
-import javax.swing.Timer;
+
 // import java.util.Timer;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 public class MipsXray extends AbstractMarsToolAndApplication {
     private static final long serialVersionUID = -1L;
@@ -216,10 +189,10 @@ public class MipsXray extends AbstractMarsToolAndApplication {
     }
 
     // Function that gets the current instruction in memory and start animation with the selected instruction.
-    protected void processMIPSUpdate(Observable resource, AccessNotice notice) {
+    protected void processMIPSUpdate(AccessNotice notice) {
 
         if (!notice.accessIsFromMIPS()) return;
-        if (notice.getAccessType() != AccessNotice.READ) return;
+        if (notice.getAccessType() != AccessNotice.AccessType.READ) return;
         MemoryAccessNotice man = (MemoryAccessNotice) notice;
         int currentAdress = man.getAddress();
 

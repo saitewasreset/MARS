@@ -1,12 +1,14 @@
 package io.github.dpetersanderson.mars.tools;
 
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+
 import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.event.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /*
 Copyright (c) 2010-2011,  Pete Sanderson and Kenneth Vollmar
@@ -167,11 +169,10 @@ public class BitmapDisplay extends AbstractMarsToolAndApplication {
 
     /**
      * Update display when connected MIPS program accesses (data) memory.
-     * @param memory the attached memory
      * @param accessNotice information provided by memory in MemoryAccessNotice object
      */
-    protected void processMIPSUpdate(Observable memory, AccessNotice accessNotice) {
-        if (accessNotice.getAccessType() == AccessNotice.WRITE) {
+    protected void processMIPSUpdate(AccessNotice accessNotice) {
+        if (accessNotice.getAccessType() == AccessNotice.AccessType.WRITE) {
             updateColorForAddress((MemoryAccessNotice) accessNotice);
         }
     }

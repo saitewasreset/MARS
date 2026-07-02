@@ -1,17 +1,20 @@
 package io.github.dpetersanderson.mars.tools;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.venus.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
+import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
  * Simple Demo of Mars tool capability
  */
-public class MarsBot implements Observer, MarsTool {
+public class MarsBot implements MemoryAccessListener, MarsTool {
     private static final int GRAPHIC_WIDTH = 512;
     private static final int GRAPHIC_HEIGHT = 512;
     private static final int ADDR_HEADING = 0xffff8010;
@@ -32,6 +35,64 @@ public class MarsBot implements Observer, MarsTool {
     private final int trackPts = 256; // TBD Hardcoded. Array contains start-end points for segments in track.
     private Point[] arrayOfTrack = new Point[trackPts];
     private int trackIndex = 0;
+
+    @Override
+    public void memoryAccessed(MemoryAccessNotice notice) {
+        int address = notice.getAddress();
+        if (address < 0 && notice.getAccessType() == AccessNotice.AccessType.WRITE) {
+            String message = "";
+            if (address == ADDR_HEADING) {
+                message = "MarsBot.update: got move heading value: ";
+                MarsBotHeading = notice.getValue();
+                // System.out.println(message + notice.getValue() );
+            } else if (address == ADDR_LEAVETRACK) {
+                message = "MarsBot.update: got leave track directive value ";
+
+                // If we HAD NOT been leaving a track, but we should NOW leave
+                // a track, put start point into array.
+                if (MarsBotLeaveTrack == false && notice.getValue() == 1) {
+                    MarsBotLeaveTrack = true;
+                    arrayOfTrack[trackIndex] = new Point((int) MarsBotXPosition, (int) MarsBotYPosition);
+                    trackIndex++; // the index of the end point
+                }
+                // If we HAD NOT been leaving a track, and get another directive
+                // to NOT leave a track, do nothing (nothing to do).
+                else if (MarsBotLeaveTrack == false && notice.getValue() == 0) {
+                    // NO ACTION
+                }
+                // If we HAD been leaving a track, and get another directive
+                // to LEAVE a track, do nothing (nothing to do).
+                else if (MarsBotLeaveTrack == true && notice.getValue() == 1) {
+                    // NO ACTION
+                }
+                // If we HAD been leaving a track, and get another directive
+                // to NOT leave a track, put end point into array.
+                else if (MarsBotLeaveTrack == true && notice.getValue() == 0) {
+                    MarsBotLeaveTrack = false;
+                    arrayOfTrack[trackIndex] = new Point((int) MarsBotXPosition, (int) MarsBotYPosition);
+                    trackIndex++; // the index of the next start point
+                }
+
+                // System.out.println("MarsBotDisplay.paintComponent: putting point in track array at " +
+                // trackIndex);
+
+                // System.out.println(message + notice.getValue() );
+            } else if (address == ADDR_MOVE) {
+                message = "MarsBot.update: got move control value: ";
+                if (notice.getValue() == 0) MarsBotMoving = false;
+                else MarsBotMoving = true;
+                // System.out.println(message + notice.getValue() );
+            } else if (address == ADDR_WHEREAREWEX || address == ADDR_WHEREAREWEY) {
+                // Ignore these memory writes, because the writes originated within
+                // this tool. This tool is being notified of the writes in the usual
+                // manner, but the writes are already known to this tool.
+                // NO ACTION
+            } else {
+                // message = "MarsBot.update: HEY!!! unknown address of " + Integer.toString(address) + ", value: ";
+                // System.out.println(message + notice.getValue() );
+            }
+        }
+    }
 
     // private inner class
     private class BotRunnable implements Runnable {
@@ -221,76 +282,9 @@ public class MarsBot implements Observer, MarsTool {
         t1.start();
         // New: DPS 27 Feb 2006.  Register observer for memory subrange.
         try {
-            Globals.memory.addObserver(this, 0xffff8000, 0xffff8060);
+            Globals.memory.addMemoryAccessListener(this, 0xffff8000, 0xffff8060);
         } catch (AddressErrorException aee) {
             System.out.println(aee);
-        }
-    }
-
-    /*
-     * This method observes MIPS program directives to modify Bot activity (that is,
-     * MIPS program write to MMIO) and updates instance variables to reflect that
-     * directive.
-     */
-    public void update(Observable o, Object arg) {
-        MemoryAccessNotice notice;
-        int address;
-        if (arg instanceof MemoryAccessNotice) {
-            notice = (MemoryAccessNotice) arg;
-            address = notice.getAddress();
-            if (address < 0 && notice.getAccessType() == AccessNotice.WRITE) {
-                String message = "";
-                if (address == ADDR_HEADING) {
-                    message = "MarsBot.update: got move heading value: ";
-                    MarsBotHeading = notice.getValue();
-                    // System.out.println(message + notice.getValue() );
-                } else if (address == ADDR_LEAVETRACK) {
-                    message = "MarsBot.update: got leave track directive value ";
-
-                    // If we HAD NOT been leaving a track, but we should NOW leave
-                    // a track, put start point into array.
-                    if (MarsBotLeaveTrack == false && notice.getValue() == 1) {
-                        MarsBotLeaveTrack = true;
-                        arrayOfTrack[trackIndex] = new Point((int) MarsBotXPosition, (int) MarsBotYPosition);
-                        trackIndex++; // the index of the end point
-                    }
-                    // If we HAD NOT been leaving a track, and get another directive
-                    // to NOT leave a track, do nothing (nothing to do).
-                    else if (MarsBotLeaveTrack == false && notice.getValue() == 0) {
-                        // NO ACTION
-                    }
-                    // If we HAD been leaving a track, and get another directive
-                    // to LEAVE a track, do nothing (nothing to do).
-                    else if (MarsBotLeaveTrack == true && notice.getValue() == 1) {
-                        // NO ACTION
-                    }
-                    // If we HAD been leaving a track, and get another directive
-                    // to NOT leave a track, put end point into array.
-                    else if (MarsBotLeaveTrack == true && notice.getValue() == 0) {
-                        MarsBotLeaveTrack = false;
-                        arrayOfTrack[trackIndex] = new Point((int) MarsBotXPosition, (int) MarsBotYPosition);
-                        trackIndex++; // the index of the next start point
-                    }
-
-                    // System.out.println("MarsBotDisplay.paintComponent: putting point in track array at " +
-                    // trackIndex);
-
-                    // System.out.println(message + notice.getValue() );
-                } else if (address == ADDR_MOVE) {
-                    message = "MarsBot.update: got move control value: ";
-                    if (notice.getValue() == 0) MarsBotMoving = false;
-                    else MarsBotMoving = true;
-                    // System.out.println(message + notice.getValue() );
-                } else if (address == ADDR_WHEREAREWEX || address == ADDR_WHEREAREWEY) {
-                    // Ignore these memory writes, because the writes originated within
-                    // this tool. This tool is being notified of the writes in the usual
-                    // manner, but the writes are already known to this tool.
-                    // NO ACTION
-                } else {
-                    // message = "MarsBot.update: HEY!!! unknown address of " + Integer.toString(address) + ", value: ";
-                    // System.out.println(message + notice.getValue() );
-                }
-            }
         }
     }
 }

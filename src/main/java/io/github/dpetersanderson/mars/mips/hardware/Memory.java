@@ -1,9 +1,12 @@
 package io.github.dpetersanderson.mars.mips.hardware;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.mips.instructions.*;
-import io.github.dpetersanderson.mars.simulator.*;
-import io.github.dpetersanderson.mars.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.ProgramStatement;
+import io.github.dpetersanderson.mars.Settings;
+import io.github.dpetersanderson.mars.mips.instructions.Instruction;
+import io.github.dpetersanderson.mars.simulator.Exceptions;
+import io.github.dpetersanderson.mars.util.Binary;
+
 import java.util.*;
 
 /*
@@ -45,7 +48,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // NOTE: This implementation is purely big-endian.  MIPS can handle either one.
 /////////////////////////////////////////////////////////////////////
 
-public class Memory extends Observable {
+public class Memory {
+    private record InnerMemoryListener(MemoryAccessListener listener, int startAddress, int endAddress) {
+        public boolean matches(MemoryAccessNotice notice) {
+            int accessedAddress = notice.getAddress();
+
+            return (accessedAddress >= startAddress && accessedAddress <= endAddress - 1 + WORD_LENGTH_BYTES);
+        }
+    }
 
     /** base address for (user) text segment: 0x00400000 **/
     public static int textBaseAddress = MemoryConfigurations.getDefaultTextBaseAddress(); // 0x00400000;
@@ -106,7 +116,7 @@ public class Memory extends Observable {
     // and high end of address range, but retrieval from the tree has to be based
     // on target address being ANYWHERE IN THE RANGE (not an exact key match).
 
-    Collection observables = getNewMemoryObserversCollection();
+    List<InnerMemoryListener> memoryAccessListeners = getNewMemoryAccessListenerCollection();
 
     // The data segment is allocated in blocks of 1024 ints (4096 bytes).  Each block is
     // referenced by a "block table" entry, and the table has 1024 entries.  The capacity
@@ -199,7 +209,7 @@ public class Memory extends Observable {
     // (greedy rather than lazy instantiation).  The constructor is private and getInstance()
     // always returns this instance.
 
-    private static Memory uniqueMemoryInstance = new Memory();
+    private static final Memory uniqueMemoryInstance = new Memory();
 
     /*
      * Private constructor for Memory.  Separate data structures for text and data segments.
@@ -399,7 +409,7 @@ public class Memory extends Observable {
             // falls outside Mars addressing range
             throw new AddressErrorException("address out of range ", Exceptions.ADDRESS_EXCEPTION_STORE, address);
         }
-        notifyAnyObservers(AccessNotice.WRITE, address, length, value);
+        notifyAnyListener(AccessNotice.AccessType.WRITE, address, length, value);
         return oldValue;
     }
 
@@ -460,7 +470,7 @@ public class Memory extends Observable {
             // falls outside Mars addressing range
             throw new AddressErrorException("store address out of range ", Exceptions.ADDRESS_EXCEPTION_STORE, address);
         }
-        notifyAnyObservers(AccessNotice.WRITE, address, WORD_LENGTH_BYTES, value);
+        notifyAnyListener(AccessNotice.AccessType.WRITE, address, WORD_LENGTH_BYTES, value);
         if (Globals.getSettings().getBackSteppingEnabled()) {
             Globals.program.getBackStepper().addMemoryRestoreRawWord(address, oldValue);
         }
@@ -563,7 +573,7 @@ public class Memory extends Observable {
         }
     }
 
-    /********************************  THE GETTER METHODS  ******************************/
+    /* *******************************  THE GETTER METHODS  ***************************** */
 
     //////////////////////////////////////////////////////////////////////////////////////////
     /**
@@ -618,7 +628,7 @@ public class Memory extends Observable {
             // falls outside Mars addressing range
             throw new AddressErrorException("address out of range ", Exceptions.ADDRESS_EXCEPTION_LOAD, address);
         }
-        if (notify) notifyAnyObservers(AccessNotice.READ, address, length, value);
+        if (notify) notifyAnyListener(AccessNotice.AccessType.READ, address, length, value);
         return value;
     }
 
@@ -681,7 +691,7 @@ public class Memory extends Observable {
             // falls outside Mars addressing range
             throw new AddressErrorException("address out of range ", Exceptions.ADDRESS_EXCEPTION_LOAD, address);
         }
-        notifyAnyObservers(AccessNotice.READ, address, Memory.WORD_LENGTH_BYTES, value);
+        notifyAnyListener(AccessNotice.AccessType.READ, address, Memory.WORD_LENGTH_BYTES, value);
         return value;
     }
 
@@ -727,8 +737,7 @@ public class Memory extends Observable {
                 value = (getStatementNoNotify(address) == null)
                         ? null
                         : getStatementNoNotify(address).getBinaryStatement();
-            } catch (AddressErrorException aee) {
-                value = null;
+            } catch (AddressErrorException ignored) {
             }
         } else if (inKernelDataSegment(address)) {
             // in kernel data segment
@@ -897,7 +906,7 @@ public class Memory extends Observable {
         else return new ProgramStatement(get(address, WORD_LENGTH_BYTES), address);
     }
 
-    /*********************************  THE UTILITIES  *************************************/
+    /* ********************************  THE UTILITIES  ************************************ */
 
     /**
      *  Utility to determine if given address is word-aligned.
@@ -991,159 +1000,103 @@ public class Memory extends Observable {
         return address >= memoryMapBaseAddress && address < kernelHighAddress;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    //  ALL THE OBSERVABLE STUFF GOES HERE.  FOR COMPATIBILITY, Memory IS STILL
-    //  EXTENDING OBSERVABLE, BUT WILL NOT USE INHERITED METHODS.  WILL INSTEAD
-    //  USE A COLLECTION OF MemoryObserver OBJECTS, EACH OF WHICH IS COMBINATION
-    //  OF AN OBSERVER WITH AN ADDRESS RANGE.
-
     /**
-     *  Method to accept registration from observer for any memory address.  Overrides
-     *  inherited method.  Note to observers: this class delegates Observable operations
-     *  so notices will come from the delegate, not the memory object.
-     *  @param obs  the observer
+     *  Method to accept registration from listener for any memory address.
+     *  @param listener  the listener
      */
-    public void addObserver(Observer obs) {
+    public void addMemoryAccessListener(MemoryAccessListener listener) {
         try { // split so start address always >= end address
-            this.addObserver(obs, 0, 0x7ffffffc);
-            this.addObserver(obs, 0x80000000, 0xfffffffc);
+            this.addMemoryAccessListener(listener, 0, 0x7ffffffc);
+            this.addMemoryAccessListener(listener, 0x80000000, 0xfffffffc);
         } catch (AddressErrorException aee) {
             System.out.println("Internal Error in Memory.addObserver: " + aee);
         }
     }
 
     /**
-     *  Method to accept registration from observer for specific address.  This includes
-     *  the memory word starting at the given address. Note to observers: this class delegates Observable operations
-     *  so notices will come from the delegate, not the memory object.
+     *  Method to accept registration from listener for specific address.  This includes
+     *  the memory word starting at the given address.
      *
-     *  @param obs  the observer
-     *  @param addr the memory address which must be on word boundary
+     *  @param listener  the listener
+     *  @param address the memory address which must be on word boundary
      */
-    public void addObserver(Observer obs, int addr) throws AddressErrorException {
-        this.addObserver(obs, addr, addr);
+    public void addMemoryAccessListener(MemoryAccessListener listener, int address) throws AddressErrorException {
+        addMemoryAccessListener(listener, address, address);
     }
 
     /**
-     *  Method to accept registration from observer for specific address range.  The
+     *  Method to accept registration from listener for specific address range.  The
      *  last byte included in the address range is the last byte of the word specified
-     *  by the ending address. Note to observers: this class delegates Observable operations
-     *  so notices will come from the delegate, not the memory object.
+     *  by the ending address.
      *
-     *  @param obs  the observer
-     *  @param startAddr the low end of memory address range, must be on word boundary
-     *  @param endAddr the high end of memory address range, must be on word boundary
+     *  @param listener  the listener
+     *  @param startAddress the low end of memory address range, must be on word boundary
+     *  @param endAddress the high end of memory address range, must be on word boundary
      */
-    public void addObserver(Observer obs, int startAddr, int endAddr) throws AddressErrorException {
-        if (startAddr % WORD_LENGTH_BYTES != 0) {
+    public void addMemoryAccessListener(MemoryAccessListener listener, int startAddress, int endAddress)
+            throws AddressErrorException {
+        if (startAddress % WORD_LENGTH_BYTES != 0) {
             throw new AddressErrorException(
-                    "address not aligned on word boundary ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddr);
+                    "address not aligned on word boundary ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddress);
         }
-        if (endAddr != startAddr && endAddr % WORD_LENGTH_BYTES != 0) {
+        if (endAddress != startAddress && endAddress % WORD_LENGTH_BYTES != 0) {
             throw new AddressErrorException(
-                    "address not aligned on word boundary ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddr);
+                    "address not aligned on word boundary ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddress);
         }
         // upper half of address space (above 0x7fffffff) has sign bit 1 thus is seen as
         // negative.
-        if (startAddr >= 0 && endAddr < 0) {
+        if (startAddress >= 0 && endAddress < 0) {
             throw new AddressErrorException(
-                    "range cannot cross 0x8000000; please split it up", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddr);
+                    "range cannot cross 0x8000000; please split it up",
+                    Exceptions.ADDRESS_EXCEPTION_LOAD,
+                    startAddress);
         }
-        if (endAddr < startAddr) {
+        if (endAddress < startAddress) {
             throw new AddressErrorException(
-                    "end address of range < start address of range ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddr);
+                    "end address of range < start address of range ", Exceptions.ADDRESS_EXCEPTION_LOAD, startAddress);
         }
-        observables.add(new MemoryObservable(obs, startAddr, endAddr));
+        memoryAccessListeners.add(new InnerMemoryListener(listener, startAddress, endAddress));
     }
 
     /**
      *  Return number of observers
      */
     public int countObservers() {
-        return observables.size();
+        return memoryAccessListeners.size();
     }
 
-    /**
-     *  Remove specified memory observers
-     *  @param obs  Observer to be removed
-     */
-    public void deleteObserver(Observer obs) {
-        Iterator it = observables.iterator();
-        while (it.hasNext()) {
-            ((MemoryObservable) it.next()).deleteObserver(obs);
-        }
-    }
+    public void removeMemoryAccessListener(MemoryAccessListener listener, int startAddress, int endAddress) {
+        Set<InnerMemoryListener> toRemove = new HashSet<>();
 
-    /**
-     *  Remove all memory observers
-     */
-    public void deleteObservers() {
-        // just drop the collection
-        observables = getNewMemoryObserversCollection();
-    }
-
-    /**
-     * Overridden to be unavailable.  The notice that an Observer
-     * receives does not come from the memory object itself, but
-     * instead from a delegate.
-     * @throws UnsupportedOperationException
-     */
-    public void notifyObservers() {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Overridden to be unavailable.  The notice that an Observer
-     * receives does not come from the memory object itself, but
-     * instead from a delegate.
-     * @throws UnsupportedOperationException
-     */
-    public void notifyObservers(Object obj) {
-        throw new UnsupportedOperationException();
-    }
-
-    private Collection getNewMemoryObserversCollection() {
-        return new Vector(); // Vectors are thread-safe
-    }
-
-    /////////////////////////////////////////////////////////////////////////
-    // Private class whose objects will represent an observable-observer pair
-    // for a given memory address or range.
-    private class MemoryObservable extends Observable implements Comparable {
-        private int lowAddress, highAddress;
-
-        public MemoryObservable(Observer obs, int startAddr, int endAddr) {
-            lowAddress = startAddr;
-            highAddress = endAddr;
-            this.addObserver(obs);
-        }
-
-        public boolean match(int address) {
-            return (address >= lowAddress && address <= highAddress - 1 + WORD_LENGTH_BYTES);
-        }
-
-        public void notifyObserver(MemoryAccessNotice notice) {
-            this.setChanged();
-            this.notifyObservers(notice);
-        }
-
-        // Useful to have for future refactoring, if it actually becomes worthwhile to sort
-        // these or put 'em in a tree (rather than sequential search through list).
-        public int compareTo(Object obj) {
-            if (!(obj instanceof MemoryObservable)) {
-                throw new ClassCastException();
+        for (InnerMemoryListener innerMemoryListener : memoryAccessListeners) {
+            if (innerMemoryListener.listener().equals(listener)
+                    && innerMemoryListener.startAddress == startAddress
+                    && innerMemoryListener.endAddress == endAddress) {
+                toRemove.add(innerMemoryListener);
             }
-            MemoryObservable mo = (MemoryObservable) obj;
-            if (this.lowAddress < mo.lowAddress
-                    || this.lowAddress == mo.lowAddress && this.highAddress < mo.highAddress) {
-                return -1;
-            }
-            if (this.lowAddress > mo.lowAddress
-                    || this.lowAddress == mo.lowAddress && this.highAddress > mo.highAddress) {
-                return -1;
-            }
-            return 0; // they have to be equal at this point.
         }
+
+        memoryAccessListeners.removeAll(toRemove);
+    }
+
+    public void removeMemoryAccessListener(MemoryAccessListener listener) {
+        Set<InnerMemoryListener> toRemove = new HashSet<>();
+
+        for (InnerMemoryListener innerMemoryListener : memoryAccessListeners) {
+            if (innerMemoryListener.listener().equals(listener)) {
+                toRemove.add(innerMemoryListener);
+            }
+        }
+
+        memoryAccessListeners.removeAll(toRemove);
+    }
+
+    public void removeAllMemoryAccessListeners() {
+        memoryAccessListeners.clear();
+    }
+
+    private List<InnerMemoryListener> getNewMemoryAccessListenerCollection() {
+        return Collections.synchronizedList(new ArrayList<>());
     }
 
     /*********************************  THE HELPERS  *************************************/
@@ -1154,14 +1107,15 @@ public class Memory extends Observable {
     //
     // The "|| Globals.getGui()==null" is a hack added 19 July 2012 DPS.  IF MIPS simulation
     // is from command mode, Globals.program is null but still want ability to observe.
-    private void notifyAnyObservers(int type, int address, int length, int value) {
-        if ((Globals.program != null || Globals.getGui() == null) && this.observables.size() > 0) {
-            Iterator it = this.observables.iterator();
-            MemoryObservable mo;
-            while (it.hasNext()) {
-                mo = (MemoryObservable) it.next();
-                if (mo.match(address)) {
-                    mo.notifyObserver(new MemoryAccessNotice(type, address, length, value));
+    private void notifyAnyListener(AccessNotice.AccessType type, int address, int length, int value) {
+        if ((Globals.program != null || Globals.getGui() == null) && !this.memoryAccessListeners.isEmpty()) {
+            MemoryAccessNotice memoryAccessNotice = new MemoryAccessNotice(type, address, length, value);
+
+            List<InnerMemoryListener> memoryAccessListenersCopied = List.copyOf(memoryAccessListeners);
+
+            for (InnerMemoryListener listener : memoryAccessListenersCopied) {
+                if (listener.matches(memoryAccessNotice)) {
+                    listener.listener().memoryAccessed(memoryAccessNotice);
                 }
             }
         }
@@ -1276,10 +1230,7 @@ public class Memory extends Observable {
         int block, offset;
         block = relative / BLOCK_LENGTH_WORDS;
         offset = relative % BLOCK_LENGTH_WORDS;
-        if (blockTable[block] == null) {
-            // first reference to an address in this block.  Assume initialized to 0.
-            value = 0;
-        } else {
+        if (blockTable[block] != null) {
             value = blockTable[block][offset];
         }
         return value;
@@ -1362,19 +1313,19 @@ public class Memory extends Observable {
         if (block < TEXT_BLOCK_TABLE_LENGTH) {
             if (blockTable[block] == null || blockTable[block][offset] == null) {
                 // No instructions are stored in this block or offset.
-                if (notify) notifyAnyObservers(AccessNotice.READ, address, Instruction.INSTRUCTION_LENGTH, 0);
+                if (notify) notifyAnyListener(AccessNotice.AccessType.READ, address, Instruction.INSTRUCTION_LENGTH, 0);
                 return null;
             } else {
                 if (notify)
-                    notifyAnyObservers(
-                            AccessNotice.READ,
+                    notifyAnyListener(
+                            AccessNotice.AccessType.READ,
                             address,
                             Instruction.INSTRUCTION_LENGTH,
                             blockTable[block][offset].getBinaryStatement());
                 return blockTable[block][offset];
             }
         }
-        if (notify) notifyAnyObservers(AccessNotice.READ, address, Instruction.INSTRUCTION_LENGTH, 0);
+        if (notify) notifyAnyListener(AccessNotice.AccessType.READ, address, Instruction.INSTRUCTION_LENGTH, 0);
         return null;
     }
 }

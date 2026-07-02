@@ -1,11 +1,14 @@
 package io.github.dpetersanderson.mars;
 
+import io.github.dpetersanderson.mars.mips.hardware.SettingsListener;
 import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.EditorFont;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.SyntaxStyle;
 import io.github.dpetersanderson.mars.venus.editors.jeditsyntax.SyntaxUtilities;
+
 import java.awt.*;
-import java.util.Observable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -54,7 +57,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  HKEY_CURRENT_USER\Software\JavaSoft\Prefs\mars
  *   @author Pete Sanderson
  **/
-public class Settings extends Observable {
+public class Settings {
     /////////////////////////////  PROPERTY ARRAY INDEXES /////////////////////////////
     // Because MARS is programmed to Java 1.4, we cannot use an enumerated type.
 
@@ -304,6 +307,8 @@ public class Settings extends Observable {
     private final String[] colorSettingsValues;
 
     private final Preferences preferences;
+
+    private final List<SettingsListener> listeners = new ArrayList<>();
 
     /**
      * Create Settings object and set to saved values.  If saved values not found, will set
@@ -1121,8 +1126,7 @@ public class Settings extends Observable {
             saveFontSetting(fontSettingPosition, fontSizeSettingsKeys, fontSizeSettingsValues);
         }
         if (fontSettingPosition == EDITOR_FONT) {
-            setChanged();
-            notifyObservers();
+            notifyListeners();
         }
     }
 
@@ -1212,8 +1216,7 @@ public class Settings extends Observable {
         if (value != booleanSettingsValues[settingIndex]) {
             booleanSettingsValues[settingIndex] = value;
             saveBooleanSetting(settingIndex);
-            setChanged();
-            notifyObservers();
+            notifyListeners();
         }
     }
 
@@ -1412,5 +1415,21 @@ public class Settings extends Observable {
             return getTextSegmentColumnOrder(defaultStringSettingsValues[TEXT_COLUMN_ORDER]);
         }
         return list;
+    }
+
+    public void addListener(SettingsListener l) {
+        listeners.add(l);
+    }
+
+    public void removeListener(SettingsListener l) {
+        listeners.remove(l);
+    }
+
+    private void notifyListeners() {
+        List<SettingsListener> listenersCopied = new ArrayList<>(listeners);
+
+        for (SettingsListener l : listenersCopied) {
+            l.settingChanged();
+        }
     }
 }

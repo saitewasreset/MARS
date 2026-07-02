@@ -1,18 +1,19 @@
 package io.github.dpetersanderson.mars.tools;
 
-import io.github.dpetersanderson.mars.*;
-import io.github.dpetersanderson.mars.assembler.*;
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.mips.instructions.*;
-import io.github.dpetersanderson.mars.util.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
+import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
+import io.github.dpetersanderson.mars.mips.hardware.Register;
+import io.github.dpetersanderson.mars.mips.hardware.RegisterAccessNotice;
+import io.github.dpetersanderson.mars.util.Binary;
+
 import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.event.*;
-import javax.swing.text.html.*;
+import javax.swing.border.TitledBorder;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar
@@ -161,16 +162,9 @@ public class FloatRepresentation extends AbstractMarsToolAndApplication {
         return buildDisplayArea();
     }
 
-    /**
-     * Override inherited update() to update display when "attached" register is modified
-     * either by MIPS program or by user editing it on the MARS user interface.
-     * The latter is the reason for overriding the inherited update() method.
-     * The inherited method will filter out notices triggered by the MARS GUI or the user.
-     * @param register the attached register
-     * @param accessNotice information provided by register in RegisterAccessNotice object
-     */
-    public void update(Observable register, Object accessNotice) {
-        if (((AccessNotice) accessNotice).getAccessType() == AccessNotice.WRITE) {
+    @Override
+    public void registerAccessed(RegisterAccessNotice notice) {
+        if (notice.getAccessType() == AccessNotice.AccessType.WRITE) {
             updateDisplays(new FlavorsOfFloat().buildOneFromInt(attachedRegister.getValue()));
         }
     }

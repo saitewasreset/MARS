@@ -1,12 +1,19 @@
 package io.github.dpetersanderson.mars.tools;
 
-import io.github.dpetersanderson.mars.mips.hardware.*;
-import io.github.dpetersanderson.mars.util.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
+import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+import io.github.dpetersanderson.mars.util.Binary;
+
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.util.Random;
 
 /*
 Copyright (c) 2003-2011,  Pete Sanderson and Kenneth Vollmar
@@ -409,10 +416,9 @@ public class CacheSimulator extends AbstractMarsToolAndApplication {
 
     /**
      * Apply caching policies and update display when connected MIPS program accesses (data) memory.
-     * @param memory the attached memory
      * @param accessNotice information provided by memory in MemoryAccessNotice object
      */
-    protected void processMIPSUpdate(Observable memory, AccessNotice accessNotice) {
+    protected void processMIPSUpdate(AccessNotice accessNotice) {
         MemoryAccessNotice notice = (MemoryAccessNotice) accessNotice;
         memoryAccessCount++;
         CacheAccessResult cacheAccessResult = theCache.isItAHitThenReadOnMiss(notice.getAddress());
