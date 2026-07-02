@@ -392,7 +392,7 @@ public class Coprocessor1 {
      */
     public static void removeRegistersListener(RegisterAccessListener listener) {
         for (Register register : registers) {
-            register.addListener(listener);
+            register.removeListener(listener);
         }
     }
 

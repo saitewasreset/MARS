@@ -72,7 +72,7 @@ public class RunBackstepAction extends GuiAction {
             Coprocessor1.addRegistersListener(executePane.getCoprocessor1Window());
             Globals.program.getBackStepper().backStep();
             Memory.getInstance().removeMemoryAccessListener(executePane.getDataSegmentWindow());
-            RegisterFile.deleteRegistersObserver(executePane.getRegistersWindow());
+            RegisterFile.removeRegistersObserver(executePane.getRegistersWindow());
             executePane.getRegistersWindow().updateRegisters();
             executePane.getCoprocessor1Window().updateRegisters();
             executePane.getCoprocessor0Window().updateRegisters();

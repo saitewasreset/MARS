@@ -205,7 +205,7 @@ public class RegistersWindow extends JPanel implements SimulatorListener, Regist
             }
         } else {
             // Simulated MIPS execution stops.  Stop responding.
-            RegisterFile.deleteRegistersObserver(this);
+            RegisterFile.removeRegistersObserver(this);
         }
     }
 

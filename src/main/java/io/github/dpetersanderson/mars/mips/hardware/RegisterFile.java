@@ -320,7 +320,7 @@ public class RegisterFile {
      *  will delete the given Observer from each one.  Currently does not apply to Program
      *  Counter.
      */
-    public static void deleteRegistersObserver(RegisterAccessListener listener) {
+    public static void removeRegistersObserver(RegisterAccessListener listener) {
         for (Register register : regFile) {
             register.removeListener(listener);
         }

@@ -1061,7 +1061,7 @@ public class Memory {
     /**
      *  Return number of observers
      */
-    public int countObservers() {
+    public int countListeners() {
         return memoryAccessListeners.size();
     }
 
