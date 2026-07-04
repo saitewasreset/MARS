@@ -1,22 +1,19 @@
 package io.github.dpetersanderson.mars;
 
-import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
-import io.github.dpetersanderson.mars.mips.hardware.Memory;
-import io.github.dpetersanderson.mars.mips.hardware.MemoryConfiguration;
-import io.github.dpetersanderson.mars.mips.hardware.MemoryConfigurations;
-import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
+import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.util.Binary;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.ITypeConverter;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.ITypeConverter;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 final class MarsCommandLine {
     static final int DECIMAL = 0;
@@ -209,6 +206,11 @@ final class MarsCommandLine {
         boolean instructionCount;
 
         @Option(
+                names = "--instruction-statistics",
+                description = "Display the count of executed basic instructions and weighted cycles by category.")
+        boolean instructionStatistics;
+
+        @Option(
                 names = "--max-steps",
                 paramLabel = "COUNT",
                 converter = IntegerDecodeConverter.class,
@@ -268,6 +270,7 @@ final class MarsCommandLine {
                     warningsAreErrors,
                     startAtMain,
                     instructionCount,
+                    instructionStatistics,
                     selfModifyingCode,
                     maxSteps,
                     assembleErrorExitCode,
@@ -359,6 +362,7 @@ final class MarsCommandLine {
         final boolean warningsAreErrors;
         final boolean startAtMain;
         final boolean countInstructions;
+        final boolean instructionStatistics;
         final boolean selfModifyingCode;
         final int maxSteps;
         final int assembleErrorExitCode;
@@ -381,6 +385,7 @@ final class MarsCommandLine {
                 boolean warningsAreErrors,
                 boolean startAtMain,
                 boolean countInstructions,
+                boolean instructionStatistics,
                 boolean selfModifyingCode,
                 int maxSteps,
                 int assembleErrorExitCode,
@@ -401,6 +406,7 @@ final class MarsCommandLine {
             this.warningsAreErrors = warningsAreErrors;
             this.startAtMain = startAtMain;
             this.countInstructions = countInstructions;
+            this.instructionStatistics = instructionStatistics;
             this.selfModifyingCode = selfModifyingCode;
             this.maxSteps = maxSteps;
             this.assembleErrorExitCode = assembleErrorExitCode;

@@ -8,6 +8,9 @@ import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.FilenameFinder;
 import io.github.dpetersanderson.mars.util.MemoryDump;
 import io.github.dpetersanderson.mars.venus.VenusUI;
+import tools.jackson.databind.ObjectMapper;
+
+import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -15,7 +18,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import javax.swing.*;
 
 /*
 Copyright (c) 2003-2012,  Pete Sanderson and Kenneth Vollmar
@@ -71,6 +73,7 @@ public class MarsLaunch {
     private boolean warningsAreErrors; // Whether assembler warnings should be considered errors.
     private boolean startAtMain; // Whether to start execution at statement labeled 'main'
     private boolean countInstructions; // Whether to count and report number of instructions executed
+    private boolean instructionStatistics;
     private boolean selfModifyingCode; // Whether to allow self-modifying code (e.g. write to text segment)
     private static final String rangeSeparator = "-";
     private static final int splashDuration = 2000; // time in MS to show splash screen
@@ -89,6 +92,7 @@ public class MarsLaunch {
     private ArrayList<String> programArgumentList; // optional program args for MIPS program (becomes argc, argv)
     private int assembleErrorExitCode; // MARS command exit code to return if assemble error occurs
     private int simulateErrorExitCode; // MARS command exit code to return if simulation error occurs
+    private CliInstructionStatisticsListener cliInstructionStatisticsListener;
 
     public MarsLaunch(String[] args) {
         boolean gui = (args.length == 0);
@@ -107,6 +111,7 @@ public class MarsLaunch {
             warningsAreErrors = false;
             startAtMain = false;
             countInstructions = false;
+            instructionStatistics = false;
             selfModifyingCode = false;
             instructionCount = 0;
             assembleErrorExitCode = 0;
@@ -114,6 +119,7 @@ public class MarsLaunch {
             registerDisplayList = new ArrayList<>();
             memoryDisplayList = new ArrayList<>();
             filenameList = new ArrayList<>();
+            cliInstructionStatisticsListener = null;
             MemoryConfigurations.setCurrentConfiguration(MemoryConfigurations.getDefaultConfiguration());
             // do NOT use Globals.program for command line MARS -- it triggers 'backstep' log.
             code = new MIPSprogram();
@@ -215,6 +221,7 @@ public class MarsLaunch {
         warningsAreErrors = command.warningsAreErrors;
         startAtMain = command.startAtMain;
         countInstructions = command.countInstructions;
+        instructionStatistics = command.instructionStatistics;
         selfModifyingCode = command.selfModifyingCode;
         maxSteps = command.maxSteps;
         assembleErrorExitCode = command.assembleErrorExitCode;
@@ -364,6 +371,17 @@ public class MarsLaunch {
                 out.println("Internal error: MarsLaunch uses incorrect text segment address for instruction observer");
             }
         }
+
+        if (instructionStatistics) {
+            cliInstructionStatisticsListener = new CliInstructionStatisticsListener();
+
+            try {
+                Globals.memory.addMemoryAccessListener(
+                        cliInstructionStatisticsListener, Memory.textBaseAddress, Memory.textLimitAddress);
+            } catch (AddressErrorException aee) {
+                out.println("Internal error: MarsLaunch uses incorrect text segment address for statisticsListener");
+            }
+        }
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -372,6 +390,12 @@ public class MarsLaunch {
     private void displayMiscellaneousPostMortem() {
         if (countInstructions) {
             out.println("\n" + instructionCount);
+        }
+
+        if (instructionStatistics) {
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            out.println(objectMapper.writeValueAsString(cliInstructionStatisticsListener.getStatistics()));
         }
     }
 

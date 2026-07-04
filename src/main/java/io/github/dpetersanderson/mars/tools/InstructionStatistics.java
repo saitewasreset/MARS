@@ -28,16 +28,17 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 package io.github.dpetersanderson.mars.tools;
 
 import io.github.dpetersanderson.mars.InstructionCategory;
-import io.github.dpetersanderson.mars.ProgramStatement;
 import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
-import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+import io.github.dpetersanderson.mars.util.InstructionStatisticsCounter;
+
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import javax.swing.*;
+import java.util.Map;
 
 /**
  *
@@ -50,7 +51,7 @@ import javax.swing.*;
  */
 // @SuppressWarnings("serial")
 public class InstructionStatistics extends AbstractMarsToolAndApplication {
-    private final EnumMap<InstructionCategory, Integer> instructionCounts = new EnumMap<>(InstructionCategory.class);
+    private InstructionStatisticsCounter instructionStatisticsCounter = new InstructionStatisticsCounter();
 
     /** name of the tool */
     private static final String NAME = "Instruction Statistics";
@@ -71,15 +72,6 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
             new EnumMap<>(InstructionCategory.class);
     private final EnumMap<InstructionCategory, JProgressBar> instructionWeightedCyclesProgressBars =
             new EnumMap<>(InstructionCategory.class);
-
-    // From Felipe Lessa's instruction counter.  Prevent double-counting of instructions
-    // which happens because 2 read events are generated.
-    /**
-     * The last address we saw. We ignore it because the only way for a
-     * program to execute twice the same instruction is to enter an infinite
-     * loop, which is not insteresting in the POV of counting instructions.
-     */
-    protected int lastAddress = -1;
 
     /**
      * Simple constructor, likely used to run a stand-alone enhanced instruction counter.
@@ -210,48 +202,6 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
     }
 
     /**
-     * decodes the instruction and determines the category of the instruction.
-     *
-     * The instruction is decoded by extracting the operation and function code of the 32-bit instruction.
-     * Only the most relevant instructions are decoded and categorized.
-     *
-     * @param stmt the instruction to decode
-     * @return the category of the instruction
-     */
-    protected InstructionCategory getInstructionCategory(ProgramStatement stmt) {
-        int opCode = stmt.getBinaryStatement() >>> (32 - 6);
-        int funct = stmt.getBinaryStatement() & 0x1F;
-
-        // R-Type
-        if (opCode == 0x00) {
-            if (funct == 0x00) return InstructionCategory.OTHER; // sll
-            if (0x02 <= funct && funct <= 0x07) return InstructionCategory.OTHER; // srl, sra, sllv, srlv, srav
-            if (funct == 0x08 || funct == 0x09) return InstructionCategory.JUMP; // jr, jalr
-
-            if ((funct >= 0x10) && (funct <= 0x13)) return InstructionCategory.OTHER; // mfhi, mthi, mflo, mtlo
-            if ((funct >= 0x18) && (funct <= 0x19)) return InstructionCategory.MULT; // mult,multu
-            if ((funct >= 0x1A) && (funct <= 0x1B)) return InstructionCategory.DIV; // div, divu
-            // add, addu, sub, subu
-            // and, or, xor, nor
-            // slt, sltu
-            return InstructionCategory.OTHER;
-        }
-        if (opCode == 0x01) {
-            if (funct <= 0x07) return InstructionCategory.BRANCH; // bltz, bgez, bltzl, bgezl
-            if (0x10 <= funct && funct <= 0x13) return InstructionCategory.BRANCH; // bltzal, bgezal, bltzall, bgczall
-            return InstructionCategory.OTHER;
-        }
-        if (opCode == 0x02 || opCode == 0x03) return InstructionCategory.JUMP; // j, jal
-        if (opCode <= 0x07) return InstructionCategory.BRANCH; // beq, bne, blez, bgtz
-        if (opCode <= 0x0F) return InstructionCategory.OTHER; // addi, addiu, slti, sltiu, andi, ori, xori, lui
-        if (0x14 <= opCode && opCode <= 0x17) return InstructionCategory.BRANCH; // beql, bnel, blezl, bgtzl
-        if (0x20 <= opCode && opCode <= 0x26) return InstructionCategory.MEM; // lb, lh, lwl, lw, lbu, lhu, lwr
-        if (0x28 <= opCode && opCode <= 0x2E) return InstructionCategory.MEM; // sb, sh, swl, sw, swr
-
-        return InstructionCategory.OTHER;
-    }
-
-    /**
      * method that is called each time the MIPS simulator accesses the text segment.
      * Before an instruction is executed by the simulator, the instruction is fetched from the program memory.
      * This memory access is observed and the corresponding instruction is decoded and categorized by the tool.
@@ -264,30 +214,8 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
         if (!notice.accessIsFromMIPS()) return;
 
         // check for a read access in the text segment
-        if (notice.getAccessType() == AccessNotice.AccessType.READ
-                && notice instanceof MemoryAccessNotice memAccNotice) {
-            // The next three statments are from Felipe Lessa's instruction counter.  Prevents double-counting.
-            int a = memAccNotice.getAddress();
-            if (a == lastAddress) return;
-            lastAddress = a;
-
-            try {
-                // access the statement in the text segment without notifying other tools etc.
-                ProgramStatement stmt = Memory.getInstance().getStatementNoNotify(memAccNotice.getAddress());
-
-                // necessary to handle possible null pointers at the end of the program
-                // (e.g., if the simulator tries to execute the next instruction after the last instruction in the text
-                // segment)
-                if (stmt != null) {
-                    InstructionCategory category = getInstructionCategory(stmt);
-
-                    instructionCounts.compute(category, (k, v) -> v == null ? 1 : v + 1);
-
-                    updateDisplay();
-                }
-            } catch (AddressErrorException e) {
-                // silently ignore these exceptions
-            }
+        if (notice instanceof MemoryAccessNotice memAccNotice) {
+            instructionStatisticsCounter.processMIPSUpdate(memAccNotice);
         }
     }
 
@@ -295,17 +223,14 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
      * performs initialization tasks of the counters before the GUI is created.
      *
      */
-    protected void initializePreGUI() {
-        lastAddress = -1; // from Felipe Lessa's instruction counter tool
-    }
+    protected void initializePreGUI() {}
 
     /**
      * resets the counter values of the tool and updates the display.
      *
      */
     protected void reset() {
-        lastAddress = -1; // from Felipe Lessa's instruction counter tool
-        instructionCounts.clear();
+        instructionStatisticsCounter = new InstructionStatisticsCounter();
         updateDisplay();
     }
 
@@ -316,6 +241,8 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
     protected void updateDisplay() {
         int totalInstructionCount = 0;
         int finalCycles = 0;
+
+        Map<InstructionCategory, Integer> instructionCounts = instructionStatisticsCounter.getInstructionCounts();
 
         for (InstructionCategory category : InstructionCategory.values()) {
             Integer categoryInstructionCount = instructionCounts.get(category);
@@ -330,9 +257,8 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
         totalInstructionCounter.setText(Integer.toString(totalInstructionCount));
         finalCyclesCounter.setText(Integer.toString(finalCycles));
 
-        for (var entry : instructionCounts.entrySet()) {
-            InstructionCategory category = entry.getKey();
-            Integer categoryInstructionCount = entry.getValue();
+        for (InstructionCategory category : InstructionCategory.values()) {
+            Integer categoryInstructionCount = instructionCounts.get(category);
 
             if (categoryInstructionCount == null) {
                 categoryInstructionCount = 0;
@@ -347,9 +273,23 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
 
             categoryCounterTextField.setText(categoryInstructionCount.toString());
             categoryWeightedCyclesCounterTextField.setText(Integer.toString(categoryWeightedCyclesCount));
-            categoryProgressBar.setMaximum(totalInstructionCount);
+
+            if (totalInstructionCount != 0) {
+                categoryProgressBar.setMaximum(totalInstructionCount);
+            } else {
+                // Prevent NaN
+                categoryProgressBar.setMaximum(1);
+            }
+
             categoryProgressBar.setValue(categoryInstructionCount);
-            categoryWeightedCyclesProgressBar.setMaximum(finalCycles);
+
+            if (finalCycles != 0) {
+                categoryWeightedCyclesProgressBar.setMaximum(finalCycles);
+            } else {
+                // Prevent NaN
+                categoryWeightedCyclesProgressBar.setMaximum(1);
+            }
+
             categoryWeightedCyclesProgressBar.setValue(categoryWeightedCyclesCount);
         }
     }
