@@ -3,7 +3,6 @@ package io.github.dpetersanderson.mars;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.util.InstructionStatisticsCounter;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,9 +33,7 @@ public class CliInstructionStatisticsListener implements MemoryAccessListener {
         Map<String, StatisticsItem> items = new HashMap<>();
         for (InstructionCategory category : InstructionCategory.values()) {
             StatisticsItem statisticsItem = new StatisticsItem(
-                    instructionCounts.get(category),
-                    category.getWeight(),
-                    weightedCycles.get(category));
+                    instructionCounts.get(category), category.getWeight(), weightedCycles.get(category));
             items.put(category.getName(), statisticsItem);
         }
 

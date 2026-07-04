@@ -8,9 +8,6 @@ import io.github.dpetersanderson.mars.util.Binary;
 import io.github.dpetersanderson.mars.util.FilenameFinder;
 import io.github.dpetersanderson.mars.util.MemoryDump;
 import io.github.dpetersanderson.mars.venus.VenusUI;
-import tools.jackson.databind.ObjectMapper;
-
-import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -18,6 +15,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import javax.swing.*;
+import tools.jackson.databind.ObjectMapper;
 
 /*
 Copyright (c) 2003-2012,  Pete Sanderson and Kenneth Vollmar

@@ -2,18 +2,17 @@ package io.github.dpetersanderson.mars;
 
 import io.github.dpetersanderson.mars.mips.hardware.*;
 import io.github.dpetersanderson.mars.util.Binary;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.ITypeConverter;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
-
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.ITypeConverter;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 final class MarsCommandLine {
     static final int DECIMAL = 0;
