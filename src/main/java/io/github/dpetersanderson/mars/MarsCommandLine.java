@@ -208,7 +208,8 @@ final class MarsCommandLine {
                 names = "--instruction-statistics",
                 paramLabel = "FILE",
                 defaultValue = "instruction_statistics.json",
-                description = "Write instruction count and weighted cycles by category to a JSON file (default: ${DEFAULT-VALUE}).")
+                description =
+                        "Write instruction count and weighted cycles by category to a JSON file (default: ${DEFAULT-VALUE}).")
         String instructionStatistics;
 
         @Option(

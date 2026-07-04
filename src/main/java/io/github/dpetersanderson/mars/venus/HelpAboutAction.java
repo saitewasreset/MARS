@@ -1,9 +1,8 @@
 package io.github.dpetersanderson.mars.venus;
 
 import io.github.dpetersanderson.mars.Globals;
-
-import javax.swing.*;
 import java.awt.event.ActionEvent;
+import javax.swing.*;
 
 /*
 Copyright (c) 2003-2006,  Pete Sanderson and Kenneth Vollmar
