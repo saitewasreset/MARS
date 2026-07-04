@@ -72,7 +72,7 @@ public class MarsLaunch {
     private boolean warningsAreErrors; // Whether assembler warnings should be considered errors.
     private boolean startAtMain; // Whether to start execution at statement labeled 'main'
     private boolean countInstructions; // Whether to count and report number of instructions executed
-    private boolean instructionStatistics;
+    private String instructionStatisticsFile;
     private boolean selfModifyingCode; // Whether to allow self-modifying code (e.g. write to text segment)
     private static final String rangeSeparator = "-";
     private static final int splashDuration = 2000; // time in MS to show splash screen
@@ -110,7 +110,7 @@ public class MarsLaunch {
             warningsAreErrors = false;
             startAtMain = false;
             countInstructions = false;
-            instructionStatistics = false;
+            instructionStatisticsFile = null;
             selfModifyingCode = false;
             instructionCount = 0;
             assembleErrorExitCode = 0;
@@ -220,7 +220,7 @@ public class MarsLaunch {
         warningsAreErrors = command.warningsAreErrors;
         startAtMain = command.startAtMain;
         countInstructions = command.countInstructions;
-        instructionStatistics = command.instructionStatistics;
+        instructionStatisticsFile = command.instructionStatistics;
         selfModifyingCode = command.selfModifyingCode;
         maxSteps = command.maxSteps;
         assembleErrorExitCode = command.assembleErrorExitCode;
@@ -371,7 +371,7 @@ public class MarsLaunch {
             }
         }
 
-        if (instructionStatistics) {
+        if (instructionStatisticsFile != null) {
             cliInstructionStatisticsListener = new CliInstructionStatisticsListener();
 
             try {
@@ -391,10 +391,15 @@ public class MarsLaunch {
             out.println("\n" + instructionCount);
         }
 
-        if (instructionStatistics) {
+        if (instructionStatisticsFile != null) {
             ObjectMapper objectMapper = new ObjectMapper();
-
-            out.println(objectMapper.writeValueAsString(cliInstructionStatisticsListener.getStatistics()));
+            File file = new File(instructionStatisticsFile);
+            try {
+                objectMapper.writeValue(file, cliInstructionStatisticsListener.getStatistics());
+            } catch (Exception e) {
+                file.delete();
+                out.println("Error writing instruction statistics to file: " + instructionStatisticsFile);
+            }
         }
     }
 

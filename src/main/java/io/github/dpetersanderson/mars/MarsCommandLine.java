@@ -206,8 +206,10 @@ final class MarsCommandLine {
 
         @Option(
                 names = "--instruction-statistics",
-                description = "Display the count of executed basic instructions and weighted cycles by category.")
-        boolean instructionStatistics;
+                paramLabel = "FILE",
+                defaultValue = "instruction_statistics.json",
+                description = "Write instruction count and weighted cycles by category to a JSON file (default: ${DEFAULT-VALUE}).")
+        String instructionStatistics;
 
         @Option(
                 names = "--max-steps",
@@ -361,7 +363,7 @@ final class MarsCommandLine {
         final boolean warningsAreErrors;
         final boolean startAtMain;
         final boolean countInstructions;
-        final boolean instructionStatistics;
+        final String instructionStatistics;
         final boolean selfModifyingCode;
         final int maxSteps;
         final int assembleErrorExitCode;
@@ -384,7 +386,7 @@ final class MarsCommandLine {
                 boolean warningsAreErrors,
                 boolean startAtMain,
                 boolean countInstructions,
-                boolean instructionStatistics,
+                String instructionStatistics,
                 boolean selfModifyingCode,
                 int maxSteps,
                 int assembleErrorExitCode,
