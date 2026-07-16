@@ -27,6 +27,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (MIT license, http://www.opensource.org/licenses/mit-license.html)
  */
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Portal to Mars
  *
@@ -35,6 +38,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
 public class Mars {
     public static void main(String[] args) {
+        Logger.getLogger("").setLevel(Level.WARNING);
         new io.github.dpetersanderson.mars.MarsLaunch(args);
     }
 }
