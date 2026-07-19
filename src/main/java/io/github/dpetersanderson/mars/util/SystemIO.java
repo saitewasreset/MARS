@@ -1,9 +1,8 @@
 package io.github.dpetersanderson.mars.util;
 
-import io.github.dpetersanderson.mars.*;
+import io.github.dpetersanderson.mars.Globals;
+import io.github.dpetersanderson.mars.Settings;
 import java.io.*;
-import java.util.*;
-import javax.swing.*;
 
 /*
 Copyright (c) 2003-2013,  Pete Sanderson and Kenneth Vollmar
@@ -199,14 +198,15 @@ public class SystemIO {
      * @return int value with lowest byte corresponding to user input
      */
     public static int readChar(int serviceNumber) {
-        String input = "0";
-        int returnValue = 0;
         if (Globals.getGui() == null) {
             try {
-                input = getInputReader().readLine();
+                return getInputReader().read();
             } catch (IOException e) {
+                return -1;
             }
         } else {
+            String input;
+
             if (Globals.getSettings().getBooleanSetting(Settings.POPUP_SYSCALL_INPUT)) {
                 input = Globals.getGui()
                         .getMessagesPane()
@@ -214,18 +214,12 @@ public class SystemIO {
             } else {
                 input = Globals.getGui().getMessagesPane().getInputString(1);
             }
+            if (input != null && !input.isEmpty()) {
+                return input.charAt(0);
+            } else {
+                return -1;
+            }
         }
-        // The whole try-catch is not really necessary in this case since I'm
-        // just propagating the runtime exception (the default behavior), but
-        // I want to make it explicit.  The client needs to catch it.
-        try {
-            returnValue = (int) (input.charAt(0)); // first character input
-        } catch (IndexOutOfBoundsException e) // no chars present
-        {
-            throw e; // was: returnValue = 0;
-        }
-
-        return returnValue;
     }
 
     /** Write bytes to file.
