@@ -3,6 +3,7 @@ package io.github.dpetersanderson.mars;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.dpetersanderson.mars.assembler.Token;
@@ -72,6 +73,70 @@ class MarsPipelineTest {
         assertEquals(2, tokens.size());
         assertToken(tokens.get(0), TokenTypes.DIRECTIVE, ".asciiz");
         assertToken(tokens.get(1), TokenTypes.QUOTED_STRING, "\"hi, mips\"");
+    }
+
+    @Test
+    void tokenizerRecognizesSupportedGnuCompatibilityDirectives() {
+        Tokenizer tokenizer = new Tokenizer();
+
+        TokenList moduleTokens = tokenizer.tokenizeLine(1, ".module\tarch=4kc");
+        assertEquals(4, moduleTokens.size());
+        assertToken(moduleTokens.get(0), TokenTypes.DIRECTIVE, ".module");
+        assertToken(moduleTokens.get(1), TokenTypes.IDENTIFIER, "arch");
+        assertToken(moduleTokens.get(2), TokenTypes.EQUALS, "=");
+        assertToken(moduleTokens.get(3), TokenTypes.DIRECTIVE_VALUE, "4kc");
+        assertEquals(1, moduleTokens.get(0).getStartPos());
+        assertEquals(9, moduleTokens.get(1).getStartPos());
+        assertEquals(13, moduleTokens.get(2).getStartPos());
+        assertEquals(14, moduleTokens.get(3).getStartPos());
+
+        TokenList typeTokens = tokenizer.tokenizeLine(2, ".type\tget_char, @function");
+        assertEquals(4, typeTokens.size());
+        assertToken(typeTokens.get(0), TokenTypes.DIRECTIVE, ".type");
+        assertToken(typeTokens.get(1), TokenTypes.IDENTIFIER, "get_char");
+        assertToken(typeTokens.get(2), TokenTypes.AT, "@");
+        assertToken(typeTokens.get(3), TokenTypes.IDENTIFIER, "function");
+        assertEquals(1, typeTokens.get(0).getStartPos());
+        assertEquals(7, typeTokens.get(1).getStartPos());
+        assertEquals(17, typeTokens.get(2).getStartPos());
+        assertEquals(18, typeTokens.get(3).getStartPos());
+        assertFalse(tokenizer.getErrors().errorsOccurred());
+    }
+
+    @Test
+    void assemblerIgnoresDirectiveArguments(@TempDir Path tempDir) throws Exception {
+        Path source = writeProgram(
+                tempDir,
+                "gnu-directives.asm",
+                ".module\tarch=5kc extra!",
+                ".type\tget_char, @object unexpected!",
+                ".set unsupported-option!",
+                ".unknown arch=99x!",
+                ".text",
+                "get_char:",
+                "addi $v0, $zero, 12");
+        MIPSprogram program = new MIPSprogram();
+        ArrayList<String> filenames = new ArrayList<>();
+        filenames.add(source.toString());
+        ArrayList<MIPSprogram> programs = program.prepareFilesForAssembly(filenames, source.toString(), null);
+
+        ErrorList warnings = program.assemble(programs, true, false);
+
+        assertFalse(warnings.errorsOccurred());
+        assertEquals(4, warnings.warningCount());
+        String warningReport = warnings.generateWarningReport();
+        assertTrue(warningReport.contains("ignores the .module directive"));
+        assertTrue(warningReport.contains("ignores the .type directive"));
+        assertTrue(warningReport.contains("ignores the .set directive"));
+        assertTrue(warningReport.contains("does not recognize the .unknown directive"));
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(1, statements.size());
+        assertEquals(0x2002000c, statements.get(0).getBinaryStatement());
+    }
+
+    @Test
+    void assemblerRejectsDirectiveTokensAsInstructionOperands(@TempDir Path tempDir) throws Exception {
+        assertDirectiveAssemblyFails(tempDir, "directive-token-as-operand.asm", ".text", "addi $t0, $zero, @function");
     }
 
     @Test
@@ -162,6 +227,17 @@ class MarsPipelineTest {
         assertNotNull(warnings);
         assertFalse(warnings.errorsOccurred());
         return program;
+    }
+
+    private static void assertDirectiveAssemblyFails(Path tempDir, String filename, String... lines) throws Exception {
+        Path source = writeProgram(tempDir, filename, lines);
+        MIPSprogram program = new MIPSprogram();
+        ArrayList<String> filenames = new ArrayList<>();
+        filenames.add(source.toString());
+        ArrayList<MIPSprogram> programs = program.prepareFilesForAssembly(filenames, source.toString(), null);
+
+        ProcessingException exception = assertThrows(ProcessingException.class, () -> program.assemble(programs, true));
+        assertTrue(exception.errors().errorsOccurred());
     }
 
     private static Path writeProgram(Path tempDir, String filename, String... lines) throws IOException {

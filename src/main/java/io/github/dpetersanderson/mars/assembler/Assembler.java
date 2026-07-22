@@ -802,25 +802,29 @@ public class Assembler {
                 storeStrings(tokens, direct, errors);
             }
         } else if (direct == Directives.ALIGN) {
-            if (passesDataSegmentCheck(token)) {
-                if (tokens.size() != 2) {
-                    errors.add(new ErrorMessage(
-                            token.getSourceMIPSprogram(),
-                            token.getSourceLine(),
-                            token.getStartPos(),
-                            "\"" + token.getValue() + "\" requires one operand"));
-                    return;
-                }
-                if (!TokenTypes.isIntegerTokenType(tokens.get(1).getType())
-                        || Binary.stringToInt(tokens.get(1).getValue()) < 0) {
-                    errors.add(new ErrorMessage(
-                            token.getSourceMIPSprogram(),
-                            token.getSourceLine(),
-                            token.getStartPos(),
-                            "\"" + token.getValue() + "\" requires a non-negative integer"));
-                    return;
-                }
-                int value = Binary.stringToInt(tokens.get(1).getValue()); // KENV 1/6/05
+            if (tokens.size() != 2) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "\"" + token.getValue() + "\" requires one operand"));
+                return;
+            }
+
+            if (!TokenTypes.isIntegerTokenType(tokens.get(1).getType())
+                    || Binary.stringToInt(tokens.get(1).getValue()) < 0) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "\"" + token.getValue() + "\" requires a non-negative integer"));
+                return;
+            }
+
+            int value = Binary.stringToInt(tokens.get(1).getValue()); // KENV 1/6/05
+
+            // In text section, align to 4 bytes (align = 2) is allowed
+            if (value != 2 && passesDataSegmentCheck(token)) {
                 if (value == 0) {
                     this.autoAlign = false;
                 } else {
@@ -873,13 +877,13 @@ public class Assembler {
                 Globals.symbolTable.addSymbol(tokens.get(1), this.externAddress, Symbol.DATA_SYMBOL, errors);
                 this.externAddress += size;
             }
-        } else if (direct == Directives.SET) {
+        } else if (Directives.isIgnoredDirective(direct)) {
             errors.add(new ErrorMessage(
                     ErrorMessage.WARNING,
                     token.getSourceMIPSprogram(),
                     token.getSourceLine(),
                     token.getStartPos(),
-                    "MARS currently ignores the .set directive."));
+                    "MARS currently ignores the " + token.getValue() + " directive."));
         } else if (direct == Directives.GLOBL) {
             if (tokens.size() < 2) {
                 errors.add(new ErrorMessage(

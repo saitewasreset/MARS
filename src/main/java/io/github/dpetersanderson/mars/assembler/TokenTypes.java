@@ -41,7 +41,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
 public final class TokenTypes {
 
-    public static final String TOKEN_DELIMITERS = "\t ,()";
+    public static final String TOKEN_DELIMITERS = "\t ,()=@";
     public static final TokenTypes COMMENT = new TokenTypes("COMMENT");
     public static final TokenTypes DIRECTIVE = new TokenTypes("DIRECTIVE");
     public static final TokenTypes OPERATOR = new TokenTypes("OPERATOR");
@@ -67,6 +67,9 @@ public final class TokenTypes {
     public static final TokenTypes PLUS = new TokenTypes("PLUS");
     public static final TokenTypes MINUS = new TokenTypes("MINUS");
     public static final TokenTypes COLON = new TokenTypes("COLON");
+    public static final TokenTypes EQUALS = new TokenTypes("EQUALS");
+    public static final TokenTypes AT = new TokenTypes("AT");
+    public static final TokenTypes DIRECTIVE_VALUE = new TokenTypes("DIRECTIVE_VALUE");
     public static final TokenTypes ERROR = new TokenTypes("ERROR");
     public static final TokenTypes MACRO_PARAMETER = new TokenTypes("MACRO_PARAMETER");
 
@@ -118,6 +121,10 @@ public final class TokenTypes {
                     return TokenTypes.RIGHT_PAREN;
                 case ':':
                     return TokenTypes.COLON;
+                case '=':
+                    return TokenTypes.EQUALS;
+                case '@':
+                    return TokenTypes.AT;
                 case '+':
                     return TokenTypes.PLUS;
                 case '-':

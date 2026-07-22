@@ -73,6 +73,10 @@ public final class Directives {
             new Directives(".globl", "Declare the listed label(s) as global to enable referencing from other files");
     public static final Directives SET =
             new Directives(".set", "Set assembler variables.  Currently ignored but included for SPIM compatability");
+    public static final Directives MODULE =
+            new Directives(".module", "Set module-level assembler options. Currently validated but ignored by MARS");
+    public static final Directives TYPE =
+            new Directives(".type", "Set an ELF symbol type. Currently validated but ignored by MARS");
     /*  EQV added by DPS 11 July 2012 */
     public static final Directives EQV = new Directives(
             ".eqv",
@@ -115,6 +119,10 @@ public final class Directives {
             }
         }
         return null;
+    }
+
+    public static boolean isIgnoredDirective(Directives directive) {
+        return directive == SET || directive == MODULE || directive == TYPE;
     }
 
     /**

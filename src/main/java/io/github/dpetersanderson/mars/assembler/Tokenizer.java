@@ -357,6 +357,8 @@ public class Tokenizer {
                     case ':':
                     case '(':
                     case ')':
+                    case '=':
+                    case '@':
                         if (tokenPos > 0) {
                             this.processCandidateToken(
                                     token, program, lineNum, theLine, tokenPos, tokenStartPos, result);
@@ -439,6 +441,7 @@ public class Tokenizer {
             } // if (insideQuotedString)
             linePos++;
         } // while
+
         if (tokenPos > 0) {
             this.processCandidateToken(token, program, lineNum, theLine, tokenPos, tokenStartPos, result);
             tokenPos = 0;
@@ -565,6 +568,9 @@ public class Tokenizer {
         String value = new String(token, 0, tokenPos);
         if (!value.isEmpty() && value.charAt(0) == '\'') value = preprocessCharacterLiteral(value);
         TokenTypes type = TokenTypes.matchTokenType(value);
+        if (type == TokenTypes.ERROR && isIgnoredDirectiveArgument(tokenList)) {
+            type = TokenTypes.DIRECTIVE_VALUE;
+        }
         if (type == TokenTypes.ERROR) {
             errors.add(
                     new ErrorMessage(program, line, tokenStartPos, theLine + "\nInvalid language element: " + value));
@@ -572,6 +578,27 @@ public class Tokenizer {
         Token toke = new Token(type, value, program, line, tokenStartPos);
         tokenList.add(toke);
         return;
+    }
+
+    private static boolean isIgnoredDirectiveArgument(TokenList tokenList) {
+        if (tokenList.isEmpty()) {
+            return false;
+        }
+
+        int directiveIndex = 0;
+        if (tokenList.size() >= 3 && tokenList.get(1).getType() == TokenTypes.COLON) {
+            directiveIndex = 2;
+        }
+        if (tokenList.size() <= directiveIndex) {
+            return false;
+        }
+
+        Token directiveToken = tokenList.get(directiveIndex);
+        Directives directive = Directives.matchDirective(directiveToken.getValue());
+        return Directives.isIgnoredDirective(directive)
+                || directive == null
+                        && directiveToken.getType() == TokenTypes.IDENTIFIER
+                        && directiveToken.getValue().startsWith(".");
     }
 
     // If passed a candidate character literal, attempt to translate it into integer constant.
