@@ -138,6 +138,8 @@ public class OperandFormat {
                 }
             }
             if (specType == TokenTypes.REGISTER_NAME && candType == TokenTypes.REGISTER_NUMBER) continue;
+            if ((candType == TokenTypes.RELOCATION_HIGH || candType == TokenTypes.RELOCATION_LOW)
+                    && (specType == TokenTypes.INTEGER_16 || specType == TokenTypes.INTEGER_16U)) continue;
             if ((specType == TokenTypes.INTEGER_16 && candType == TokenTypes.INTEGER_5)
                     || (specType == TokenTypes.INTEGER_16U && candType == TokenTypes.INTEGER_5)
                     || (specType == TokenTypes.INTEGER_32 && candType == TokenTypes.INTEGER_5)

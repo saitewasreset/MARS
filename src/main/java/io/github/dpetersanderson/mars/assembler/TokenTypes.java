@@ -62,6 +62,8 @@ public final class TokenTypes {
     public static final TokenTypes INTEGER_16 = new TokenTypes("INTEGER_16");
     public static final TokenTypes INTEGER_16U = new TokenTypes("INTEGER_16U");
     public static final TokenTypes INTEGER_32 = new TokenTypes("INTEGER_32");
+    public static final TokenTypes RELOCATION_HIGH = new TokenTypes("RELOCATION_HIGH");
+    public static final TokenTypes RELOCATION_LOW = new TokenTypes("RELOCATION_LOW");
     public static final TokenTypes REAL_NUMBER = new TokenTypes("REAL_NUMBER");
     public static final TokenTypes QUOTED_STRING = new TokenTypes("QUOTED_STRING");
     public static final TokenTypes PLUS = new TokenTypes("PLUS");
@@ -111,6 +113,14 @@ public final class TokenTypes {
 
         // See if it is a comment
         if (value.charAt(0) == '#') return TokenTypes.COMMENT;
+
+        if (value.charAt(0) == '%') {
+            try {
+                return RelocationExpression.parse(value).getType();
+            } catch (RelocationExpression.ParseException exception) {
+                return TokenTypes.ERROR;
+            }
+        }
 
         // See if it is one of the simple tokens
         if (value.length() == 1) {

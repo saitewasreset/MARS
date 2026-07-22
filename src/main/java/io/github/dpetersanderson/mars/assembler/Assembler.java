@@ -277,6 +277,10 @@ public class Assembler {
             ProgramStatement statement;
             for (ProgramStatement programStatement : parsedList) {
                 statement = programStatement;
+                this.resolveRelocationExpressions(statement);
+                if (errors.errorsOccurred()) {
+                    throw new ProcessingException(errors);
+                }
                 statement.buildBasicStatementFromBasicInstruction(errors);
                 if (errors.errorsOccurred()) {
                     throw new ProcessingException(errors);
@@ -398,6 +402,49 @@ public class Assembler {
         }
         return this.machineList;
     } // assemble()
+
+    private void resolveRelocationExpressions(ProgramStatement statement) {
+        TokenList tokens = statement.getStrippedTokenList();
+        for (int index = 1; index < tokens.size(); index++) {
+            Token token = tokens.get(index);
+            if (token.getType() != TokenTypes.RELOCATION_HIGH && token.getType() != TokenTypes.RELOCATION_LOW) {
+                continue;
+            }
+
+            RelocationExpression expression;
+            try {
+                expression = RelocationExpression.parse(token.getValue());
+            } catch (RelocationExpression.ParseException exception) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "Invalid relocation expression: " + exception.getMessage()));
+                continue;
+            }
+
+            int address =
+                    fileCurrentlyBeingAssembled.getLocalSymbolTable().getAddressLocalOrGlobal(expression.getSymbol());
+            if (address == SymbolTable.NOT_FOUND) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "Symbol \"" + expression.getSymbol() + "\" not found in symbol table."));
+                continue;
+            }
+
+            String value = Integer.toString(expression.apply(address));
+            Token replacement = new Token(
+                    TokenTypes.matchTokenType(value),
+                    value,
+                    token.getSourceMIPSprogram(),
+                    token.getSourceLine(),
+                    token.getStartPos());
+            replacement.setOriginal(token.getOriginalProgram(), token.getOriginalSourceLine());
+            tokens.set(index, replacement);
+        }
+    }
 
     // //////////////////////////////////////////////////////////////////////
     // Will check for duplicate text addresses, which can happen inadvertantly when using

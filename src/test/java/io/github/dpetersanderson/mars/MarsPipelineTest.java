@@ -153,6 +153,83 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerResolvesHighAndLowRelocationsForForwardSymbol(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir,
+                "relocation.asm",
+                ".text",
+                "lui $t0, %hi(pow2 + 4)",
+                "addiu $t0, $t0, %lo(pow2 + 4)",
+                ".data",
+                ".space 32764",
+                "pow2:",
+                ".word 0");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(2, statements.size());
+        assertEquals(0x3c081002, statements.get(0).getBinaryStatement());
+        assertEquals(0x25088000, statements.get(1).getBinaryStatement());
+        assertEquals(
+                "%hi(pow2 + 4)", statements.get(0).getOriginalTokenList().get(2).getValue());
+        assertEquals(
+                TokenTypes.RELOCATION_HIGH,
+                statements.get(0).getOriginalTokenList().get(2).getType());
+
+        RegisterFile.initializeProgramCounter(false);
+        assertFalse(program.simulate(2));
+        assertEquals(0x10018000, RegisterFile.getValue(8));
+    }
+
+    @Test
+    void assemblerSupportsLocalDollarSymbolAndNegativeAddend(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir,
+                "local-relocation.asm",
+                ".text",
+                "$L30:",
+                "lui $t0, %hi($L30-4)",
+                "addiu $t0, $t0, %lo($L30-4)");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(0x3c080040, statements.get(0).getBinaryStatement());
+        assertEquals(0x2508fffc, statements.get(1).getBinaryStatement());
+    }
+
+    @Test
+    void assemblerResolvesGlobalSymbolFromAnotherFile(@TempDir Path tempDir) throws Exception {
+        Path mainSource = writeProgram(
+                tempDir, "global-relocation-main.asm", ".text", "lui $t0, %hi(shared)", "addiu $t0, $t0, %lo(shared)");
+        Path symbolSource =
+                writeProgram(tempDir, "global-relocation-symbol.asm", ".data", ".globl shared", "shared:", ".word 0");
+        MIPSprogram program = new MIPSprogram();
+        ArrayList<String> filenames = new ArrayList<>();
+        filenames.add(mainSource.toString());
+        filenames.add(symbolSource.toString());
+        ArrayList<MIPSprogram> programs = program.prepareFilesForAssembly(filenames, mainSource.toString(), null);
+
+        ErrorList warnings = program.assemble(programs, true, false);
+
+        assertFalse(warnings.errorsOccurred());
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(0x3c081001, statements.get(0).getBinaryStatement());
+        assertEquals(0x25080000, statements.get(1).getBinaryStatement());
+    }
+
+    @Test
+    void assemblerRejectsUndefinedRelocationSymbolAndWrongOperandPosition(@TempDir Path tempDir) throws Exception {
+        assertAssemblyFailsWith(
+                tempDir, "undefined-relocation.asm", "Symbol \"missing\" not found", ".text", "lui $t0, %hi(missing)");
+        assertAssemblyFailsWith(
+                tempDir,
+                "wrong-relocation-operand.asm",
+                "operand is of incorrect type",
+                ".text",
+                "sll $t0, $t1, %lo(target)",
+                "target:",
+                "nop");
+    }
+
+    @Test
     void simulatorRunsAssembledMachineCodeAndUpdatesRegisters(@TempDir Path tempDir) throws Exception {
         MIPSprogram program = assembleProgram(
                 tempDir,
@@ -238,6 +315,18 @@ class MarsPipelineTest {
 
         ProcessingException exception = assertThrows(ProcessingException.class, () -> program.assemble(programs, true));
         assertTrue(exception.errors().errorsOccurred());
+    }
+
+    private static void assertAssemblyFailsWith(Path tempDir, String filename, String expectedMessage, String... lines)
+            throws Exception {
+        Path source = writeProgram(tempDir, filename, lines);
+        MIPSprogram program = new MIPSprogram();
+        ArrayList<String> filenames = new ArrayList<>();
+        filenames.add(source.toString());
+        ArrayList<MIPSprogram> programs = program.prepareFilesForAssembly(filenames, source.toString(), null);
+
+        ProcessingException exception = assertThrows(ProcessingException.class, () -> program.assemble(programs, true));
+        assertTrue(exception.errors().generateErrorReport().contains(expectedMessage));
     }
 
     private static Path writeProgram(Path tempDir, String filename, String... lines) throws IOException {

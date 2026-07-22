@@ -298,6 +298,16 @@ public class Tokenizer {
                     insideQuotedString = false;
                 }
             } else { // not inside a quoted string, so be sensitive to delimiters
+                if (c == '%' && tokenPos == 0) {
+                    tokenStartPos = linePos + 1;
+                    int relocationEnd = scanRelocationExpression(line, linePos);
+                    tokenPos = relocationEnd - linePos;
+                    System.arraycopy(line, linePos, token, 0, tokenPos);
+                    this.processCandidateToken(token, program, lineNum, theLine, tokenPos, tokenStartPos, result);
+                    tokenPos = 0;
+                    linePos = relocationEnd;
+                    continue;
+                }
                 switch (c) {
                     case '#': // # denotes comment that takes remainder of line
                         if (tokenPos > 0) {
@@ -452,6 +462,29 @@ public class Tokenizer {
         return result;
     }
 
+    private static int scanRelocationExpression(char[] line, int start) {
+        int index = start + 1;
+        while (index < line.length && Character.isLetterOrDigit(line[index])) {
+            index++;
+        }
+        if (index >= line.length || line[index] != '(') {
+            return index;
+        }
+
+        int depth = 0;
+        while (index < line.length) {
+            if (line[index] == '(') {
+                depth++;
+            } else if (line[index] == ')' && --depth == 0) {
+                return index + 1;
+            } else if (line[index] == '#' && depth > 0) {
+                return index;
+            }
+            index++;
+        }
+        return index;
+    }
+
     // Process the .eqv directive, which needs to be applied prior to tokenizing of subsequent statements.
     // This handles detecting that theLine contains a .eqv directive, in which case it needs
     // to be added to the HashMap of equivalents.  It also handles detecting that theLine
@@ -572,8 +605,16 @@ public class Tokenizer {
             type = TokenTypes.DIRECTIVE_VALUE;
         }
         if (type == TokenTypes.ERROR) {
-            errors.add(
-                    new ErrorMessage(program, line, tokenStartPos, theLine + "\nInvalid language element: " + value));
+            String message = theLine + "\nInvalid language element: " + value;
+            if (value.startsWith("%")) {
+                try {
+                    RelocationExpression.parse(value);
+                } catch (RelocationExpression.ParseException exception) {
+                    message =
+                            theLine + "\nInvalid relocation expression: " + value + " (" + exception.getMessage() + ")";
+                }
+            }
+            errors.add(new ErrorMessage(program, line, tokenStartPos, message));
         }
         Token toke = new Token(type, value, program, line, tokenStartPos);
         tokenList.add(toke);
