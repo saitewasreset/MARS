@@ -44,6 +44,8 @@ public final class Directives {
     private static ArrayList directiveList = new ArrayList();
     public static final Directives DATA =
             new Directives(".data", "Subsequent items stored in Data segment at next available address");
+    public static final Directives RDATA =
+            new Directives(".rdata", "Subsequent items stored in Data segment at next available address (readonly)");
     public static final Directives TEXT =
             new Directives(".text", "Subsequent items (instructions) stored in Text segment at next available address");
     public static final Directives WORD =
@@ -80,7 +82,8 @@ public final class Directives {
     /*  EQV added by DPS 11 July 2012 */
     public static final Directives EQV = new Directives(
             ".eqv",
-            "Substitute second operand for first. First operand is symbol, second operand is expression (like #define)");
+            "Substitute second operand for first. First operand is symbol, second operand is expression (like"
+                    + " #define)");
     /* MACRO and END_MACRO added by Mohammad Sekhavat Oct 2012 */
     public static final Directives MACRO = new Directives(".macro", "Begin macro definition.  See .end_macro");
     public static final Directives END_MACRO = new Directives(".end_macro", "End macro definition.  See .macro");

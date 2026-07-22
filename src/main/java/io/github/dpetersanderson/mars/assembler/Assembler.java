@@ -771,11 +771,13 @@ public class Assembler {
             fileCurrentlyBeingAssembled.getLocalMacroPool().commitMacro(token);
         } else if (inMacroSegment) {
             // should not parse lines even directives in macro segment
-        } else if (direct == Directives.DATA || direct == Directives.KDATA) {
+        } else if (direct == Directives.DATA || direct == Directives.RDATA || direct == Directives.KDATA) {
             this.inDataSegment = true;
             this.autoAlign = true;
             this.dataAddress.setAddressSpace(
-                    (direct == Directives.DATA) ? this.dataAddress.USER : this.dataAddress.KERNEL);
+                    (direct == Directives.DATA || direct == Directives.RDATA)
+                            ? this.dataAddress.USER
+                            : this.dataAddress.KERNEL);
             if (tokens.size() > 1 && TokenTypes.isIntegerTokenType(tokens.get(1).getType())) {
                 this.dataAddress.set(Binary.stringToInt(tokens.get(1).getValue())); // KENV 1/6/05
             }
