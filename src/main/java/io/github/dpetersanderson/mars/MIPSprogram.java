@@ -53,8 +53,8 @@ public class MIPSprogram {
     private String filename;
     private ArrayList<String> sourceList;
     private ArrayList<TokenList> tokenList;
-    private ArrayList<String> parsedList;
-    private ArrayList<String> machineList;
+    private ArrayList<ProgramStatement> parsedList;
+    private ArrayList<ProgramStatement> machineList;
     private BackStepper backStepper;
     private SymbolTable localSymbolTable;
     private MacroPool macroPool;
@@ -123,7 +123,7 @@ public class MIPSprogram {
      * MIPS statement.
      * @see ProgramStatement
      **/
-    public ArrayList<String> createParsedList() {
+    public ArrayList<ProgramStatement> createParsedList() {
         parsedList = new ArrayList<>();
         return parsedList;
     }
@@ -134,7 +134,7 @@ public class MIPSprogram {
      * MIPS statement.
      * @see ProgramStatement
      **/
-    public ArrayList<String> getParsedList() {
+    public ArrayList<ProgramStatement> getParsedList() {
         return parsedList;
     }
 
@@ -144,7 +144,7 @@ public class MIPSprogram {
      * basic MIPS instruction.
      * @see ProgramStatement
      **/
-    public ArrayList<String> getMachineList() {
+    public ArrayList<ProgramStatement> getMachineList() {
         return machineList;
     }
 
