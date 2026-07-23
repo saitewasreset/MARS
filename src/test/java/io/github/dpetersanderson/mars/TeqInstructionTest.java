@@ -1,21 +1,20 @@
 package io.github.dpetersanderson.mars;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstruction;
 import io.github.dpetersanderson.mars.mips.instructions.impl.Teq2Instruction;
 import io.github.dpetersanderson.mars.mips.instructions.impl.TeqInstruction;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class TeqInstructionTest {
     @BeforeAll
