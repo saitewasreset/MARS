@@ -6,13 +6,13 @@ import io.github.dpetersanderson.mars.mips.instructions.BasicInstruction;
 import io.github.dpetersanderson.mars.mips.instructions.BasicInstructionFormat;
 import io.github.dpetersanderson.mars.simulator.Exceptions;
 
-public class TeqInstruction extends BasicInstruction {
-    public TeqInstruction() {
+public class Teq2Instruction extends BasicInstruction {
+    public Teq2Instruction() {
         super(
-                "teq $t1,$t2",
-                "Trap if equal : Trap if $t1 is equal to $t2",
+                "teq $t1,$t2,100",
+                "Trap if equal with code : Trap if $t1 is equal to $t2",
                 BasicInstructionFormat.R_FORMAT,
-                "000000 fffff sssss 00000 00000 110100",
+                "000000 fffff sssss ttttt ttttt 110100",
                 statement -> {
                     int[] operands = statement.getOperands();
                     if (RegisterFile.getValue(operands[0]) == RegisterFile.getValue(operands[1])) {

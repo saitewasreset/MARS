@@ -219,6 +219,7 @@ public class InstructionSet {
         instructionList.add(new Sdc1Instruction());
         ////////////////////////////  THE TRAP INSTRUCTIONS & ERET  ////////////////////////////
         instructionList.add(new TeqInstruction());
+        instructionList.add(new Teq2Instruction());
         instructionList.add(new TeqiInstruction());
         instructionList.add(new TneInstruction());
         instructionList.add(new TneiInstruction());
