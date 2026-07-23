@@ -153,6 +153,41 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerExpandsAndSimulatesSltImmediate(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir,
+                "slt-immediate.asm",
+                ".text",
+                "slt $t0, $t1, 32767",
+                "slt $t2, $t1, -32768",
+                "slt $t3, $t1, 32768",
+                "slt $t4, $t1, -32769",
+                "slt $t5, $t2, $t0",
+                "addi $v0, $zero, 10",
+                "syscall");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(11, statements.size());
+        assertEquals(0x29287fff, statements.get(0).getBinaryStatement());
+        assertEquals(0x292a8000, statements.get(1).getBinaryStatement());
+        assertEquals(0x3c010000, statements.get(2).getBinaryStatement());
+        assertEquals(0x34218000, statements.get(3).getBinaryStatement());
+        assertEquals(0x0121582a, statements.get(4).getBinaryStatement());
+        assertEquals(0x3c01ffff, statements.get(5).getBinaryStatement());
+        assertEquals(0x34217fff, statements.get(6).getBinaryStatement());
+        assertEquals(0x0121602a, statements.get(7).getBinaryStatement());
+        assertEquals(0x0148682a, statements.get(8).getBinaryStatement());
+
+        RegisterFile.initializeProgramCounter(false);
+        assertTrue(program.simulate(20));
+        assertEquals(1, RegisterFile.getValue(8));
+        assertEquals(0, RegisterFile.getValue(10));
+        assertEquals(1, RegisterFile.getValue(11));
+        assertEquals(0, RegisterFile.getValue(12));
+        assertEquals(1, RegisterFile.getValue(13));
+    }
+
+    @Test
     void assemblerResolvesHighAndLowRelocationsForForwardSymbol(@TempDir Path tempDir) throws Exception {
         MIPSprogram program = assembleProgram(
                 tempDir,
