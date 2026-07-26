@@ -345,67 +345,53 @@ public class Binary {
     }
 
     /**
-     * Attempt to validate given string whose characters represent a 32 bit integer.
-     * Integer.decode() is insufficient because it will not allow incorporation of
-     * hex two's complement (i.e. 0x80...0 through 0xff...f).  Allows
-     * optional negative (-) sign but no embedded spaces.
+     * Attempt to validate given string whose characters represent a 32 bit integer. A leading
+     * {@code 0} selects octal, while {@code 0x} or {@code 0X} selects hexadecimal. Values without a
+     * radix prefix are decimal. An optional sign is allowed, but embedded spaces are not.
      *
-     * @param s candidate string
-     * @return returns int value represented by given string
-     * @throws NumberFormatException if string cannot be translated into an int
+     * <p>Positive values may use the full unsigned 32 bit range and are returned as their two's
+     * complement bit pattern. Negative values are limited to the signed 32 bit range.
+     *
+     * @param value candidate string
+     * @return int value represented by given string
+     * @throws NumberFormatException if string cannot be translated into a 32 bit integer
      */
-    public static int stringToInt(String s) throws NumberFormatException {
-        String work = new String(s);
-        int result = 0;
-        // First, use Integer.decode().  This will validate most, but it flags
-        // valid hex two's complement values as exceptions.  We'll catch those and
-        // do our own validation.
-        try {
-            result = Integer.decode(s).intValue();
-        } catch (NumberFormatException nfe) {
-            // Multistep process toward validation of hex two's complement. 3-step test:
-            //   (1) exactly 10 characters long,
-            //   (2) starts with Ox or 0X,
-            //   (3) last 8 characters are valid hex digits.
-            work = work.toLowerCase();
-            if (work.length() == 10 && work.startsWith("0x")) {
-                String bitString = "";
-                int index;
-                // while testing characters, build bit string to set up for binaryStringToInt
-                for (int i = 2; i < 10; i++) {
-                    index = Arrays.binarySearch(chars, work.charAt(i));
-                    if (index < 0) {
-                        throw new NumberFormatException();
-                    }
-                    bitString = bitString + intToBinaryString(index, 4);
-                }
-                result = binaryStringToInt(bitString);
-            }
-            /*  The following "else" composed by Jose Baiocchi Paredes, Oct 2009.  This new code
-               will correctly translate a string representing an unsigned decimal (not hex)
-             value whose signed value is negative.  This is the decimal equivalent of the
-             "then" case just above.  The method was not used in this context until Release 3.6
-             when background highlighting of the Data Segment was added.  Caused exceptions
-             under certain conditions.
-            */
-            else if (!work.startsWith("0x")) {
-                result = 0;
-                for (int i = 0; i < work.length(); i++) {
-                    char c = work.charAt(i);
-                    if ('0' <= c && c <= '9') {
-                        result *= 10;
-                        result += c - '0';
-                    } else {
-                        throw new NumberFormatException();
-                    }
-                }
-            }
-            /*  End of the Jose Paredes code */
-            else {
-                throw new NumberFormatException();
+    public static int stringToInt(String value) throws NumberFormatException {
+        if (value.isEmpty()) {
+            throw new NumberFormatException("empty integer literal");
+        }
+
+        int digitStart = 0;
+        boolean negative = false;
+        char first = value.charAt(0);
+        if (first == '+' || first == '-') {
+            negative = first == '-';
+            digitStart++;
+        }
+        if (digitStart == value.length()) {
+            throw new NumberFormatException("integer literal has no digits");
+        }
+
+        int radix = 10;
+        if (value.charAt(digitStart) == '0') {
+            if (digitStart + 1 < value.length()
+                    && (value.charAt(digitStart + 1) == 'x' || value.charAt(digitStart + 1) == 'X')) {
+                radix = 16;
+                digitStart += 2;
+            } else if (digitStart + 1 < value.length()) {
+                radix = 8;
             }
         }
-        return result;
+        if (digitStart == value.length()) {
+            throw new NumberFormatException("integer literal has no digits");
+        }
+
+        long magnitude = Long.parseLong(value.substring(digitStart), radix);
+        long maximumMagnitude = negative ? 0x80000000L : 0xffffffffL;
+        if (magnitude > maximumMagnitude) {
+            throw new NumberFormatException("integer literal is outside the 32 bit range");
+        }
+        return (int) (negative ? -magnitude : magnitude);
     }
 
     /**

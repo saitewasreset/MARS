@@ -12,6 +12,7 @@ import io.github.dpetersanderson.mars.assembler.TokenTypes;
 import io.github.dpetersanderson.mars.assembler.Tokenizer;
 import io.github.dpetersanderson.mars.mips.hardware.Coprocessor0;
 import io.github.dpetersanderson.mars.mips.hardware.Coprocessor1;
+import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryConfigurations;
 import io.github.dpetersanderson.mars.mips.hardware.RegisterFile;
 import io.github.dpetersanderson.mars.util.SystemIO;
@@ -150,6 +151,72 @@ class MarsPipelineTest {
         assertEquals(0x20080005, machineStatements.get(0).getBinaryStatement());
         assertEquals(0x20090007, machineStatements.get(1).getBinaryStatement());
         assertEquals(0x01095020, machineStatements.get(2).getBinaryStatement());
+    }
+
+    @Test
+    void assemblerUsesOctalAndHexadecimalIntegerLiterals(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir,
+                "integer-literals.asm",
+                ".data",
+                ".word 012, 0xabcd",
+                ".text",
+                "addi $t0, $zero, 012",
+                "ori $t1, $zero, 0xabcd");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(2, statements.size());
+        assertEquals(0x2008000a, statements.get(0).getBinaryStatement());
+        assertEquals(0x3409abcd, statements.get(1).getBinaryStatement());
+        assertEquals(10, Globals.memory.getWord(Memory.dataBaseAddress));
+        assertEquals(0xabcd, Globals.memory.getWord(Memory.dataBaseAddress + Memory.WORD_LENGTH_BYTES));
+    }
+
+    @Test
+    void assemblerRejectsInvalidOctalIntegerLiteral(@TempDir Path tempDir) throws Exception {
+        assertAssemblyFailsWith(
+                tempDir,
+                "invalid-octal-integer.asm",
+                "\"018\" is not a valid integer constant or label",
+                ".data",
+                ".word 018");
+    }
+
+    @Test
+    void assemblerStoresOctalAndHexadecimalStringEscapes(@TempDir Path tempDir) throws Exception {
+        assembleProgram(
+                tempDir,
+                "string-escapes.asm",
+                ".data",
+                ".ascii \"A\\012B\\0xff\"",
+                ".ascii \"\\0377\"",
+                ".asciiz \"\\0\"");
+
+        assertEquals('A', Globals.memory.getByte(Memory.dataBaseAddress));
+        assertEquals('\n', Globals.memory.getByte(Memory.dataBaseAddress + 1));
+        assertEquals('B', Globals.memory.getByte(Memory.dataBaseAddress + 2));
+        assertEquals(0xff, Globals.memory.getByte(Memory.dataBaseAddress + 3));
+        assertEquals(0xff, Globals.memory.getByte(Memory.dataBaseAddress + 4));
+        assertEquals(0, Globals.memory.getByte(Memory.dataBaseAddress + 5));
+        assertEquals(0, Globals.memory.getByte(Memory.dataBaseAddress + 6));
+    }
+
+    @Test
+    void assemblerRejectsInvalidStringEscapesWithSourceLocations(@TempDir Path tempDir) throws Exception {
+        assertAssemblyFailsWith(tempDir, "invalid-octal-string.asm", "line 2 column 9", ".data", ".ascii \"\\018\"");
+        assertAssemblyFailsWith(
+                tempDir,
+                "out-of-range-string.asm",
+                "numeric escape \"\\0xabcd\" is outside the byte range 0..255",
+                ".data",
+                ".ascii \"\\0xabcd\"");
+        assertAssemblyFailsWith(tempDir, "unknown-string-escape.asm", "line 2 column 10", ".data", ".ascii \"A\\q\"");
+        assertAssemblyFailsWith(
+                tempDir,
+                "incomplete-hex-string.asm",
+                "hexadecimal escape requires at least one digit",
+                ".data",
+                ".ascii \"\\0x\"");
     }
 
     @Test

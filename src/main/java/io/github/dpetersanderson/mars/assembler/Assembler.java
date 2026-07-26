@@ -1289,67 +1289,42 @@ public class Assembler {
                         token.getSourceLine(),
                         token.getStartPos(),
                         "\"" + token.getValue() + "\" is not a valid character string"));
-            } else {
-                String quote = token.getValue();
-                char theChar;
-                for (int j = 1; j < quote.length() - 1; j++) {
-                    theChar = quote.charAt(j);
-                    if (theChar == '\\') {
-                        theChar = quote.charAt(++j);
-                        switch (theChar) {
-                            case 'n':
-                                theChar = '\n';
-                                break;
-                            case 't':
-                                theChar = '\t';
-                                break;
-                            case 'r':
-                                theChar = '\r';
-                                break;
-                            case '\\', '\'', '"':
-                                break;
-                            case 'b':
-                                theChar = '\b';
-                                break;
-                            case 'f':
-                                theChar = '\f';
-                                break;
-                            case '0':
-                                theChar = '\0';
-                                break;
-                            // Not implemented: \ n = octal character (n is number)
-                            // \ x n = hex character (n is number)
-                            // \ u n = unicode character (n is number)
-                            // There are of course no spaces in these escape
-                            // codes...
-                        }
-                    }
-                    try {
-                        Globals.memory.set(this.dataAddress.get(), (int) theChar, DataTypes.CHAR_SIZE);
-                    } catch (AddressErrorException e) {
-                        errors.add(new ErrorMessage(
-                                token.getSourceMIPSprogram(),
-                                token.getSourceLine(),
-                                token.getStartPos(),
-                                "\"" + this.dataAddress.get() + "\" is not a valid data segment address"));
-                    }
-                    this.dataAddress.increment(DataTypes.CHAR_SIZE);
-                }
-                if (direct == Directives.ASCIIZ) {
-                    try {
-                        Globals.memory.set(this.dataAddress.get(), 0, DataTypes.CHAR_SIZE);
-                    } catch (AddressErrorException e) {
-                        errors.add(new ErrorMessage(
-                                token.getSourceMIPSprogram(),
-                                token.getSourceLine(),
-                                token.getStartPos(),
-                                "\"" + this.dataAddress.get() + "\" is not a valid data segment address"));
-                    }
-                    this.dataAddress.increment(DataTypes.CHAR_SIZE);
-                }
+                continue;
+            }
+
+            byte[] decoded;
+            try {
+                decoded = StringLiteralDecoder.decode(token.getValue());
+            } catch (StringLiteralDecoder.DecodeException exception) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos() + exception.getOffset(),
+                        exception.getMessage()));
+                continue;
+            }
+
+            for (byte value : decoded) {
+                storeStringByte(Byte.toUnsignedInt(value), token, errors);
+            }
+            if (direct == Directives.ASCIIZ) {
+                storeStringByte(0, token, errors);
             }
         }
     } // storeStrings()
+
+    private void storeStringByte(int value, Token token, ErrorList errors) {
+        try {
+            Globals.memory.set(this.dataAddress.get(), value, DataTypes.CHAR_SIZE);
+        } catch (AddressErrorException exception) {
+            errors.add(new ErrorMessage(
+                    token.getSourceMIPSprogram(),
+                    token.getSourceLine(),
+                    token.getStartPos(),
+                    "\"" + this.dataAddress.get() + "\" is not a valid data segment address"));
+        }
+        this.dataAddress.increment(DataTypes.CHAR_SIZE);
+    }
 
     // //////////////////////////////////////////////////////////////////////////////////
     // Simply check to see if we are in data segment. Generate error if not.
