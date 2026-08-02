@@ -2,6 +2,8 @@ package io.github.dpetersanderson.mars.venus;
 
 import io.github.dpetersanderson.mars.tools.*;
 import java.awt.event.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.*;
 
 /*
@@ -41,6 +43,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *  @version August 2005
  */
 public class ToolAction extends AbstractAction {
+    private static final Logger LOGGER = Logger.getLogger(ToolAction.class.getName());
+
     private Class toolClass; // MarsTool tool;
 
     /**
@@ -66,6 +70,7 @@ public class ToolAction extends AbstractAction {
             // in ToolLoader's loadMarsTools() method.
             ((MarsTool) this.toolClass.newInstance()).action();
         } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Failed to launch MARS tool: " + getValue(Action.NAME), ex);
         }
     }
 }

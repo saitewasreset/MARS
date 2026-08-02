@@ -51,6 +51,8 @@ import javax.swing.*;
  */
 // @SuppressWarnings("serial")
 public class InstructionStatistics extends AbstractMarsToolAndApplication {
+    private static final int PROGRESS_BAR_MAXIMUM = 1000;
+
     private InstructionStatisticsCounter instructionStatisticsCounter = new InstructionStatisticsCounter();
 
     /** name of the tool */
@@ -129,12 +131,7 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
             instructionWeightedCyclesProgressBars.put(category, categoryWeightedCyclesProgressBar);
         }
 
-        List<String> finalCyclesParts = new ArrayList<>();
-
-        for (InstructionCategory category : InstructionCategory.values()) {
-            finalCyclesParts.add(String.format("%s * %d", category.getName(), category.getWeight()));
-        }
-        String finalCyclesFormula = String.format("FinalCycle = %s", String.join(" + ", finalCyclesParts));
+        String finalCyclesFormula = buildFinalCyclesFormula();
 
         GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.LINE_START;
@@ -274,35 +271,38 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
             categoryCounterTextField.setText(categoryInstructionCount.toPlainString());
             categoryWeightedCyclesCounterTextField.setText(categoryWeightedCyclesCount.toPlainString());
 
-            categoryProgressBar.setMaximum(1000);
+            categoryProgressBar.setMaximum(PROGRESS_BAR_MAXIMUM);
 
-            int progressBarApproximateValue;
-
-            if (!totalInstructionCount.equals(BigDecimal.ZERO)) {
-                progressBarApproximateValue = categoryInstructionCount
-                        .divideToIntegralValue(totalInstructionCount)
-                        .multiply(BigDecimal.valueOf(1000))
-                        .intValue();
-            } else {
-                progressBarApproximateValue = 0;
-            }
+            int progressBarApproximateValue =
+                    calculateProgressBarValue(categoryInstructionCount, totalInstructionCount);
 
             categoryProgressBar.setValue(progressBarApproximateValue);
 
-            categoryWeightedCyclesProgressBar.setMaximum(1000);
+            categoryWeightedCyclesProgressBar.setMaximum(PROGRESS_BAR_MAXIMUM);
 
-            int categoryWeightedCyclesProgressBarApproximateValue;
-
-            if (!finalCycles.equals(BigDecimal.ZERO)) {
-                categoryWeightedCyclesProgressBarApproximateValue = categoryWeightedCyclesCount
-                        .divideToIntegralValue(finalCycles)
-                        .multiply(BigDecimal.valueOf(1000))
-                        .intValue();
-            } else {
-                categoryWeightedCyclesProgressBarApproximateValue = 0;
-            }
+            int categoryWeightedCyclesProgressBarApproximateValue =
+                    calculateProgressBarValue(categoryWeightedCyclesCount, finalCycles);
 
             categoryWeightedCyclesProgressBar.setValue(categoryWeightedCyclesProgressBarApproximateValue);
         }
+    }
+
+    static String buildFinalCyclesFormula() {
+        List<String> finalCyclesParts = new ArrayList<>();
+
+        for (InstructionCategory category : InstructionCategory.values()) {
+            finalCyclesParts.add(String.format(
+                    "%s * %s", category.getName(), category.getWeight().toPlainString()));
+        }
+        return String.format("FinalCycle = %s", String.join(" + ", finalCyclesParts));
+    }
+
+    static int calculateProgressBarValue(BigDecimal value, BigDecimal total) {
+        if (total.signum() == 0) {
+            return 0;
+        }
+        return value.multiply(BigDecimal.valueOf(PROGRESS_BAR_MAXIMUM))
+                .divideToIntegralValue(total)
+                .intValueExact();
     }
 }
