@@ -881,7 +881,20 @@ public class Assembler {
                 }
             }
         } else if (direct == Directives.SPACE) {
-            if (passesDataSegmentCheck(token)) {
+            if (!TokenTypes.isIntegerTokenType(tokens.get(1).getType())
+                    || Binary.stringToInt(tokens.get(1).getValue()) < 0) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "\"" + token.getValue() + "\" requires a non-negative integer"));
+                return;
+            }
+
+            int value = Binary.stringToInt(tokens.get(1).getValue()); // KENV 1/6/05
+
+            // In text section, space of 4 bytes
+            if (value != 4 && passesDataSegmentCheck(token)) {
                 if (tokens.size() != 2) {
                     errors.add(new ErrorMessage(
                             token.getSourceMIPSprogram(),
@@ -890,18 +903,9 @@ public class Assembler {
                             "\"" + token.getValue() + "\" requires one operand"));
                     return;
                 }
-                if (!TokenTypes.isIntegerTokenType(tokens.get(1).getType())
-                        || Binary.stringToInt(tokens.get(1).getValue()) < 0) {
-                    errors.add(new ErrorMessage(
-                            token.getSourceMIPSprogram(),
-                            token.getSourceLine(),
-                            token.getStartPos(),
-                            "\"" + token.getValue() + "\" requires a non-negative integer"));
-                    return;
-                }
-                int value = Binary.stringToInt(tokens.get(1).getValue()); // KENV 1/6/05
-                this.dataAddress.increment(value);
             }
+
+            this.dataAddress.increment(value);
         } else if (direct == Directives.EXTERN) {
             if (tokens.size() != 3) {
                 errors.add(new ErrorMessage(
