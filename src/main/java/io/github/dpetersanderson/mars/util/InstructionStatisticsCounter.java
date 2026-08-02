@@ -36,36 +36,62 @@ public class InstructionStatisticsCounter {
      * @return the category of the instruction
      */
     public static InstructionCategory getInstructionCategory(ProgramStatement stmt) {
-        int opCode = stmt.getBinaryStatement() >>> (32 - 6);
-        int funct = stmt.getBinaryStatement() & 0x1F;
+        int binaryStatement = stmt.getBinaryStatement();
+        int opCode = binaryStatement >>> 26;
+        int rs = (binaryStatement >>> 21) & 0x1F;
+        int rt = (binaryStatement >>> 16) & 0x1F;
+        int funct = binaryStatement & 0x3F;
 
-        // R-Type
-        if (opCode == 0x00) {
-            if (funct == 0x00) return InstructionCategory.OTHER; // sll
-            if (0x02 <= funct && funct <= 0x07) return InstructionCategory.OTHER; // srl, sra, sllv, srlv, srav
-            if (funct == 0x08 || funct == 0x09) return InstructionCategory.JUMP; // jr, jalr
-
-            if ((funct >= 0x10) && (funct <= 0x13)) return InstructionCategory.OTHER; // mfhi, mthi, mflo, mtlo
-            if ((funct >= 0x18) && (funct <= 0x19)) return InstructionCategory.MULT; // mult,multu
-            if ((funct >= 0x1A) && (funct <= 0x1B)) return InstructionCategory.DIV; // div, divu
-            // add, addu, sub, subu
-            // and, or, xor, nor
-            // slt, sltu
-            return InstructionCategory.OTHER;
-        }
-        if (opCode == 0x01) {
-            if (funct <= 0x07) return InstructionCategory.BRANCH; // bltz, bgez, bltzl, bgezl
-            if (0x10 <= funct && funct <= 0x13) return InstructionCategory.BRANCH; // bltzal, bgezal, bltzall, bgczall
-            return InstructionCategory.OTHER;
-        }
-        if (opCode == 0x02 || opCode == 0x03) return InstructionCategory.JUMP; // j, jal
-        if (opCode <= 0x07) return InstructionCategory.BRANCH; // beq, bne, blez, bgtz
-        if (opCode <= 0x0F) return InstructionCategory.OTHER; // addi, addiu, slti, sltiu, andi, ori, xori, lui
-        if (0x14 <= opCode && opCode <= 0x17) return InstructionCategory.BRANCH; // beql, bnel, blezl, bgtzl
-        if (0x20 <= opCode && opCode <= 0x26) return InstructionCategory.MEM; // lb, lh, lwl, lw, lbu, lhu, lwr
-        if (0x28 <= opCode && opCode <= 0x2E) return InstructionCategory.MEM; // sb, sh, swl, sw, swr
-
-        return InstructionCategory.OTHER;
+        return switch (opCode) {
+            case 0x00 ->
+                switch (funct) {
+                    case 0x08, 0x09 -> InstructionCategory.JUMP; // jr, jalr
+                    case 0x18, 0x19 -> InstructionCategory.MULT; // mult, multu
+                    case 0x1A, 0x1B -> InstructionCategory.DIV; // div, divu
+                    default -> InstructionCategory.OTHER;
+                };
+            case 0x01 ->
+                switch (rt) {
+                    case 0x00, 0x01, 0x10, 0x11 -> InstructionCategory.BRANCH; // bltz, bgez, bltzal, bgezal
+                    default -> InstructionCategory.OTHER; // trap immediate instructions
+                };
+            case 0x02, 0x03 -> InstructionCategory.JUMP; // j, jal
+            case 0x04, 0x05, 0x06, 0x07, 0x14, 0x15, 0x16, 0x17 -> InstructionCategory.BRANCH;
+            case 0x11 -> {
+                if (rs == 0x08) { // bc1f, bc1t
+                    yield InstructionCategory.BRANCH;
+                }
+                if (rs == 0x10 || rs == 0x11) { // single- or double-precision arithmetic
+                    if (funct == 0x02) yield InstructionCategory.MULT; // mul.s, mul.d
+                    if (funct == 0x03) yield InstructionCategory.DIV; // div.s, div.d
+                }
+                yield InstructionCategory.OTHER;
+            }
+            case 0x1C ->
+                switch (funct) {
+                    case 0x00, 0x01, 0x02, 0x04, 0x05 -> InstructionCategory.MULT; // madd, maddu, mul, msub, msubu
+                    default -> InstructionCategory.OTHER;
+                };
+            case 0x20,
+                    0x21,
+                    0x22,
+                    0x23,
+                    0x24,
+                    0x25,
+                    0x26, // lb, lh, lwl, lw, lbu, lhu, lwr
+                    0x28,
+                    0x29,
+                    0x2A,
+                    0x2B,
+                    0x2E, // sb, sh, swl, sw, swr
+                    0x30,
+                    0x31,
+                    0x35, // ll, lwc1, ldc1
+                    0x38,
+                    0x39,
+                    0x3D -> InstructionCategory.MEM; // sc, swc1, sdc1
+            default -> InstructionCategory.OTHER;
+        };
     }
 
     public Map<InstructionCategory, BigDecimal> getInstructionCounts() {
