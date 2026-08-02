@@ -3,7 +3,6 @@ package io.github.dpetersanderson.mars;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.util.InstructionStatisticsCounter;
-
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
