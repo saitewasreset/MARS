@@ -1,17 +1,19 @@
 package io.github.dpetersanderson.mars;
 
+import java.math.BigDecimal;
+
 public enum InstructionCategory {
-    DIV("Divide", 15),
-    MULT("Multiply", 5),
-    JUMP("Jump", 2),
-    BRANCH("Branch", 2),
-    MEM("Memory", 3),
-    OTHER("Other", 1);
+    DIV("Divide", BigDecimal.valueOf(15)),
+    MULT("Multiply", BigDecimal.valueOf(5)),
+    JUMP("Jump", BigDecimal.valueOf(2)),
+    BRANCH("Branch", BigDecimal.valueOf(2)),
+    MEM("Memory", BigDecimal.valueOf(3)),
+    OTHER("Other", BigDecimal.valueOf(1));
 
     private final String name;
-    private final int weight;
+    private final BigDecimal weight;
 
-    InstructionCategory(String name, int weight) {
+    InstructionCategory(String name, BigDecimal weight) {
         this.name = name;
         this.weight = weight;
     }
@@ -20,7 +22,7 @@ public enum InstructionCategory {
         return name;
     }
 
-    public int getWeight() {
+    public BigDecimal getWeight() {
         return weight;
     }
 }

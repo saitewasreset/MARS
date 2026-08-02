@@ -32,12 +32,14 @@ import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.util.InstructionStatisticsCounter;
+
+import javax.swing.*;
 import java.awt.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.*;
 
 /**
  *
@@ -238,58 +240,70 @@ public class InstructionStatistics extends AbstractMarsToolAndApplication {
      *
      */
     protected void updateDisplay() {
-        int totalInstructionCount = 0;
-        int finalCycles = 0;
+        BigDecimal totalInstructionCount = BigDecimal.ZERO;
+        BigDecimal finalCycles = BigDecimal.ZERO;
 
-        Map<InstructionCategory, Integer> instructionCounts = instructionStatisticsCounter.getInstructionCounts();
+        Map<InstructionCategory, BigDecimal> instructionCounts = instructionStatisticsCounter.getInstructionCounts();
 
         for (InstructionCategory category : InstructionCategory.values()) {
-            Integer categoryInstructionCount = instructionCounts.get(category);
+            BigDecimal categoryInstructionCount = instructionCounts.get(category);
 
             if (categoryInstructionCount == null) {
-                categoryInstructionCount = 0;
+                categoryInstructionCount = BigDecimal.ZERO;
             }
 
-            totalInstructionCount += categoryInstructionCount;
-            finalCycles += categoryInstructionCount * category.getWeight();
+            totalInstructionCount = totalInstructionCount.add(categoryInstructionCount);
+            finalCycles = finalCycles.add(categoryInstructionCount.multiply(category.getWeight()));
         }
-        totalInstructionCounter.setText(Integer.toString(totalInstructionCount));
-        finalCyclesCounter.setText(Integer.toString(finalCycles));
+        totalInstructionCounter.setText(totalInstructionCount.toPlainString());
+        finalCyclesCounter.setText(finalCycles.toPlainString());
 
         for (InstructionCategory category : InstructionCategory.values()) {
-            Integer categoryInstructionCount = instructionCounts.get(category);
+            BigDecimal categoryInstructionCount = instructionCounts.get(category);
 
             if (categoryInstructionCount == null) {
-                categoryInstructionCount = 0;
+                categoryInstructionCount = BigDecimal.ZERO;
             }
 
-            int categoryWeightedCyclesCount = categoryInstructionCount * category.getWeight();
+            BigDecimal categoryWeightedCyclesCount = categoryInstructionCount.multiply(category.getWeight());
 
             JTextField categoryCounterTextField = instructionCounters.get(category);
             JTextField categoryWeightedCyclesCounterTextField = instructionWeightedCyclesCounters.get(category);
             JProgressBar categoryProgressBar = instructionProgressBars.get(category);
             JProgressBar categoryWeightedCyclesProgressBar = instructionWeightedCyclesProgressBars.get(category);
 
-            categoryCounterTextField.setText(categoryInstructionCount.toString());
-            categoryWeightedCyclesCounterTextField.setText(Integer.toString(categoryWeightedCyclesCount));
+            categoryCounterTextField.setText(categoryInstructionCount.toPlainString());
+            categoryWeightedCyclesCounterTextField.setText(categoryWeightedCyclesCount.toPlainString());
 
-            if (totalInstructionCount != 0) {
-                categoryProgressBar.setMaximum(totalInstructionCount);
+            categoryProgressBar.setMaximum(1000);
+
+            int progressBarApproximateValue;
+
+            if (!totalInstructionCount.equals(BigDecimal.ZERO)) {
+                progressBarApproximateValue = categoryInstructionCount
+                        .divideToIntegralValue(totalInstructionCount)
+                        .multiply(BigDecimal.valueOf(1000))
+                        .intValue();
             } else {
-                // Prevent NaN
-                categoryProgressBar.setMaximum(1);
+                progressBarApproximateValue = 0;
             }
 
-            categoryProgressBar.setValue(categoryInstructionCount);
+            categoryProgressBar.setValue(progressBarApproximateValue);
 
-            if (finalCycles != 0) {
-                categoryWeightedCyclesProgressBar.setMaximum(finalCycles);
+            categoryWeightedCyclesProgressBar.setMaximum(1000);
+
+            int categoryWeightedCyclesProgressBarApproximateValue;
+
+            if (!finalCycles.equals(BigDecimal.ZERO)) {
+                categoryWeightedCyclesProgressBarApproximateValue = categoryWeightedCyclesCount
+                        .divideToIntegralValue(finalCycles)
+                        .multiply(BigDecimal.valueOf(1000))
+                        .intValue();
             } else {
-                // Prevent NaN
-                categoryWeightedCyclesProgressBar.setMaximum(1);
+                categoryWeightedCyclesProgressBarApproximateValue = 0;
             }
 
-            categoryWeightedCyclesProgressBar.setValue(categoryWeightedCyclesCount);
+            categoryWeightedCyclesProgressBar.setValue(categoryWeightedCyclesProgressBarApproximateValue);
         }
     }
 }

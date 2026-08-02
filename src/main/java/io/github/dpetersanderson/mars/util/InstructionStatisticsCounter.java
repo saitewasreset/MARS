@@ -6,15 +6,17 @@ import io.github.dpetersanderson.mars.mips.hardware.AccessNotice;
 import io.github.dpetersanderson.mars.mips.hardware.AddressErrorException;
 import io.github.dpetersanderson.mars.mips.hardware.Memory;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
+
+import java.math.BigDecimal;
 import java.util.EnumMap;
 import java.util.Map;
 
 public class InstructionStatisticsCounter {
-    private final EnumMap<InstructionCategory, Integer> instructionCounts = new EnumMap<>(InstructionCategory.class);
+    private final EnumMap<InstructionCategory, BigDecimal> instructionCounts = new EnumMap<>(InstructionCategory.class);
 
     public InstructionStatisticsCounter() {
         for (InstructionCategory instructionCategory : InstructionCategory.values()) {
-            instructionCounts.put(instructionCategory, 0);
+            instructionCounts.put(instructionCategory, BigDecimal.ZERO);
         }
     }
 
@@ -67,21 +69,21 @@ public class InstructionStatisticsCounter {
         return InstructionCategory.OTHER;
     }
 
-    public Map<InstructionCategory, Integer> getInstructionCounts() {
+    public Map<InstructionCategory, BigDecimal> getInstructionCounts() {
         return instructionCounts.clone();
     }
 
-    public Map<InstructionCategory, Integer> getWeightedCycles() {
-        EnumMap<InstructionCategory, Integer> weightedCycles = new EnumMap<>(InstructionCategory.class);
+    public Map<InstructionCategory, BigDecimal> getWeightedCycles() {
+        EnumMap<InstructionCategory, BigDecimal> weightedCycles = new EnumMap<>(InstructionCategory.class);
 
         for (InstructionCategory instructionCategory : InstructionCategory.values()) {
-            Integer count = instructionCounts.get(instructionCategory);
+            BigDecimal count = instructionCounts.get(instructionCategory);
 
             if (count == null) {
-                count = 0;
+                count = BigDecimal.ZERO;
             }
 
-            weightedCycles.put(instructionCategory, count * instructionCategory.getWeight());
+            weightedCycles.put(instructionCategory, count.multiply(instructionCategory.getWeight()));
         }
 
         return weightedCycles;
@@ -108,7 +110,7 @@ public class InstructionStatisticsCounter {
                 if (stmt != null) {
                     InstructionCategory category = InstructionStatisticsCounter.getInstructionCategory(stmt);
 
-                    instructionCounts.compute(category, (k, v) -> v == null ? 1 : v + 1);
+                    instructionCounts.compute(category, (k, v) -> v == null ? BigDecimal.ONE : v.add(BigDecimal.ONE));
                 }
             } catch (AddressErrorException e) {
                 // silently ignore these exceptions

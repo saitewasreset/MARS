@@ -3,13 +3,16 @@ package io.github.dpetersanderson.mars;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessListener;
 import io.github.dpetersanderson.mars.mips.hardware.MemoryAccessNotice;
 import io.github.dpetersanderson.mars.util.InstructionStatisticsCounter;
+
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
 public class CliInstructionStatisticsListener implements MemoryAccessListener {
-    public record StatisticsItem(int instructionCount, int weight, int weightedCycles) {}
+    public record StatisticsItem(BigDecimal instructionCount, BigDecimal weight, BigDecimal weightedCycles) {}
 
-    public record StatisticsResult(int finalCycles, int totalInstructionCount, Map<String, StatisticsItem> items) {}
+    public record StatisticsResult(
+            BigDecimal finalCycles, BigDecimal totalInstructionCount, Map<String, StatisticsItem> items) {}
 
     private final InstructionStatisticsCounter instructionStatisticsCounter = new InstructionStatisticsCounter();
 
@@ -19,15 +22,15 @@ public class CliInstructionStatisticsListener implements MemoryAccessListener {
     }
 
     public StatisticsResult getStatistics() {
-        int finalCycles = 0;
-        int totalInstructions = 0;
+        BigDecimal finalCycles = BigDecimal.ZERO;
+        BigDecimal totalInstructions = BigDecimal.ZERO;
 
-        Map<InstructionCategory, Integer> instructionCounts = instructionStatisticsCounter.getInstructionCounts();
-        Map<InstructionCategory, Integer> weightedCycles = instructionStatisticsCounter.getWeightedCycles();
+        Map<InstructionCategory, BigDecimal> instructionCounts = instructionStatisticsCounter.getInstructionCounts();
+        Map<InstructionCategory, BigDecimal> weightedCycles = instructionStatisticsCounter.getWeightedCycles();
 
         for (InstructionCategory category : InstructionCategory.values()) {
-            finalCycles += weightedCycles.get(category);
-            totalInstructions += instructionCounts.get(category);
+            finalCycles = finalCycles.add(weightedCycles.get(category));
+            totalInstructions = totalInstructions.add(instructionCounts.get(category));
         }
 
         Map<String, StatisticsItem> items = new HashMap<>();
