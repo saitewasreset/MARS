@@ -155,6 +155,37 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerAlignsSpaceAllocatedGlobalSymbols(@TempDir Path tempDir) throws Exception {
+        assembleProgram(
+                tempDir,
+                "aligned-space-symbols.asm",
+                ".globl expression_buffer",
+                ".globl current_char",
+                ".globl current_position",
+                ".globl calculation_error",
+                ".section .bss,\"aw\",@nobits",
+                ".align 2",
+                "expression_buffer:",
+                ".space 8192",
+                "current_char:",
+                ".space 1",
+                ".align 2",
+                "current_position:",
+                ".space 4",
+                ".align 2",
+                "calculation_error:",
+                ".space 4",
+                ".text",
+                ".align 2",
+                "nop");
+
+        assertEquals(Memory.dataBaseAddress, Globals.symbolTable.getAddress("expression_buffer"));
+        assertEquals(Memory.dataBaseAddress + 8192, Globals.symbolTable.getAddress("current_char"));
+        assertEquals(Memory.dataBaseAddress + 8196, Globals.symbolTable.getAddress("current_position"));
+        assertEquals(Memory.dataBaseAddress + 8200, Globals.symbolTable.getAddress("calculation_error"));
+    }
+
+    @Test
     void assemblerRejectsDirectiveTokensAsInstructionOperands(@TempDir Path tempDir) throws Exception {
         assertDirectiveAssemblyFails(tempDir, "directive-token-as-operand.asm", ".text", "addi $t0, $zero, @function");
     }

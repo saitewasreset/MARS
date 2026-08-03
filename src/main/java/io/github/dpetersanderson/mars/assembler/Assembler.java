@@ -873,7 +873,12 @@ public class Assembler {
             int value = Binary.stringToInt(tokens.get(1).getValue()); // KENV 1/6/05
 
             // In text section, align to 4 bytes (align = 2) is allowed
-            if (value != 2 && passesDataSegmentCheck(token)) {
+
+            if (value == 2 && !this.inDataSegment) {
+                return;
+            }
+
+            if (passesDataSegmentCheck(token)) {
                 if (value == 0) {
                     this.autoAlign = false;
                 } else {
