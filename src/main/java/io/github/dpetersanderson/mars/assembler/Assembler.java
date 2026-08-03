@@ -930,6 +930,60 @@ public class Assembler {
                 Globals.symbolTable.addSymbol(tokens.get(1), this.externAddress, Symbol.DATA_SYMBOL, errors);
                 this.externAddress += size;
             }
+        } else if (direct == Directives.COMM) {
+            if (tokens.size() != 3 && tokens.size() != 4) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "\"" + token.getValue() + "\" directive requires a symbol, length, and optional alignment."));
+                return;
+            }
+            if (tokens.get(1).getType() != TokenTypes.IDENTIFIER) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        tokens.get(1).getStartPos(),
+                        "\"" + token.getValue() + "\" directive symbol must be a label."));
+                return;
+            }
+            if (!TokenTypes.isIntegerTokenType(tokens.get(2).getType())
+                    || Binary.stringToInt(tokens.get(2).getValue()) < 0) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        tokens.get(2).getStartPos(),
+                        "\"" + token.getValue() + "\" directive length must be a non-negative integer."));
+                return;
+            }
+
+            int length = Binary.stringToInt(tokens.get(2).getValue());
+            int alignment = defaultCommonAlignment(length);
+            if (tokens.size() == 4) {
+                if (!TokenTypes.isIntegerTokenType(tokens.get(3).getType())) {
+                    errors.add(new ErrorMessage(
+                            token.getSourceMIPSprogram(),
+                            token.getSourceLine(),
+                            tokens.get(3).getStartPos(),
+                            "\"" + token.getValue() + "\" directive alignment must be a positive power of two."));
+                    return;
+                }
+                alignment = Binary.stringToInt(tokens.get(3).getValue());
+                if (alignment <= 0 || Integer.highestOneBit(alignment) != alignment) {
+                    errors.add(new ErrorMessage(
+                            token.getSourceMIPSprogram(),
+                            token.getSourceLine(),
+                            tokens.get(3).getStartPos(),
+                            "\"" + token.getValue() + "\" directive alignment must be a positive power of two."));
+                    return;
+                }
+            }
+
+            if (Globals.symbolTable.getAddress(tokens.get(1).getValue()) == SymbolTable.NOT_FOUND) {
+                this.externAddress = this.alignToBoundary(this.externAddress, alignment);
+                Globals.symbolTable.addSymbol(tokens.get(1), this.externAddress, Symbol.DATA_SYMBOL, errors);
+                this.externAddress += length;
+            }
         } else if (Directives.isIgnoredDirective(direct)) {
             errors.add(new ErrorMessage(
                     ErrorMessage.WARNING,
@@ -999,6 +1053,10 @@ public class Assembler {
                     "\"" + token.getValue() + "\" directive recognized but not yet implemented."));
         }
     } // executeDirective()
+
+    private static int defaultCommonAlignment(int length) {
+        return length == 0 ? 1 : Math.min(Integer.highestOneBit(length), 16);
+    }
 
     // //////////////////////////////////////////////////////////////////////////////
     // Process the list of .globl labels, if any, declared and defined in this file.

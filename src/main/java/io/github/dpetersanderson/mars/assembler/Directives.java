@@ -70,6 +70,8 @@ public final class Directives {
             new Directives(".float", "Store the listed value(s) as single precision floating point");
     public static final Directives EXTERN =
             new Directives(".extern", "Declare the listed label and byte length to be a global data field");
+    public static final Directives COMM =
+            new Directives(".comm", "Declare a global uninitialized data field with optional byte alignment");
     public static final Directives KDATA =
             new Directives(".kdata", "Subsequent items stored in Kernel Data segment at next available address");
     public static final Directives KTEXT = new Directives(

@@ -136,6 +136,25 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerAllocatesGlobalCommonSymbols(@TempDir Path tempDir) throws Exception {
+        assembleProgram(
+                tempDir,
+                "common-symbols.asm",
+                ".comm common, 3",
+                ".comm default_aligned, 5",
+                ".comm explicitly_aligned, 5, 8",
+                ".text",
+                "la $t0, common",
+                "la $t1, default_aligned",
+                "la $t2, explicitly_aligned");
+
+        assertEquals(Memory.externBaseAddress, Globals.symbolTable.getAddress("common"));
+        assertEquals(Memory.externBaseAddress + 4, Globals.symbolTable.getAddress("default_aligned"));
+        assertEquals(Memory.externBaseAddress + 16, Globals.symbolTable.getAddress("explicitly_aligned"));
+        assertEquals(0, Globals.memory.getByte(Memory.externBaseAddress));
+    }
+
+    @Test
     void assemblerRejectsDirectiveTokensAsInstructionOperands(@TempDir Path tempDir) throws Exception {
         assertDirectiveAssemblyFails(tempDir, "directive-token-as-operand.asm", ".text", "addi $t0, $zero, @function");
     }
