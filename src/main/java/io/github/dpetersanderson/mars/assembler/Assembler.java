@@ -962,6 +962,35 @@ public class Assembler {
                 }
                 globalDeclarationList.add(label);
             }
+        } else if (direct == Directives.SECTION) {
+            if (tokens.size() < 2) {
+                errors.add(new ErrorMessage(
+                        token.getSourceMIPSprogram(),
+                        token.getSourceLine(),
+                        token.getStartPos(),
+                        "\"" + token.getValue() + "\" directive requires at least one argument."));
+                return;
+            }
+
+            Token sectionNameToken = tokens.get(1);
+            String sectionName = sectionNameToken.getValue();
+
+            boolean isRecognizedDataSection = isRecognizedDataSection(sectionName);
+            boolean isRecognizedTextSection = isRecognizedTextSection(sectionName);
+
+            if (isRecognizedDataSection) {
+                this.inDataSegment = true;
+            } else if (isRecognizedTextSection) {
+                this.inDataSegment = false;
+            } else {
+                errors.add(new ErrorMessage(
+                        ErrorMessage.WARNING,
+                        sectionNameToken.getSourceMIPSprogram(),
+                        sectionNameToken.getSourceLine(),
+                        sectionNameToken.getStartPos(),
+                        "Unrecognized section type '" + sectionNameToken.getValue() + "'."));
+            }
+
         } else {
             errors.add(new ErrorMessage(
                     token.getSourceMIPSprogram(),
@@ -1573,5 +1602,16 @@ public class Assembler {
                 this.token = token;
             }
         }
+    }
+
+    private boolean isRecognizedDataSection(String sectionName) {
+        return sectionName.equals(".data")
+                || sectionName.equals(".kdata")
+                || sectionName.equals(".rdata")
+                || sectionName.equals(".bss");
+    }
+
+    private boolean isRecognizedTextSection(String sectionName) {
+        return sectionName.equals(".text") || sectionName.equals(".ktext");
     }
 }
