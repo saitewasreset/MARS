@@ -1006,14 +1006,7 @@ public class Assembler {
                 // pass. At that point, transfer matching symbol definitions from
                 // local symbol table to global symbol table.
                 Token label = tokens.get(i);
-                if (label.getType() != TokenTypes.IDENTIFIER) {
-                    errors.add(new ErrorMessage(
-                            token.getSourceMIPSprogram(),
-                            token.getSourceLine(),
-                            token.getStartPos(),
-                            "\"" + token.getValue() + "\" directive argument must be label."));
-                    return;
-                }
+
                 globalDeclarationList.add(label);
             }
         } else if (direct == Directives.SECTION) {
