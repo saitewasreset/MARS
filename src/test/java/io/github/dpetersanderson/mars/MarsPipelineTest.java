@@ -266,6 +266,18 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerExpandsGasStyleVariableShiftAliases(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir, "variable-shift-aliases.asm", ".text", "sll $2, $3, $2", "srl $2, $3, $2", "sra $2, $3, $2");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(3, statements.size());
+        assertEquals(0x00431004, statements.get(0).getBinaryStatement());
+        assertEquals(0x00431006, statements.get(1).getBinaryStatement());
+        assertEquals(0x00431007, statements.get(2).getBinaryStatement());
+    }
+
+    @Test
     void assemblerResolvesHighAndLowRelocationsForForwardSymbol(@TempDir Path tempDir) throws Exception {
         MIPSprogram program = assembleProgram(
                 tempDir,

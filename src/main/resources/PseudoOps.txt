@@ -208,6 +208,10 @@ bltu $t1,$t2,label	sltu $1, RG1, RG2	bne $1, $0, LAB	#Branch if Less Than Unsign
 bltu $t1,-100,label	sltiu $1, RG1, VL2	bne $1, $0, LAB	#Branch if Less Than Unsigned : Branch to statement at label if $t1 is less than 16-bit immediate	
 bltu $t1,100000,label	lui $1, VHL2	ori $1, $1, VL2U	sltu $1, RG1, $1	bne $1, $0, LAB	#Branch if Less Than Unsigned : Branch to statement at label if $t1 is less than 32-bit immediate
 
+sll $t1,$t2,$t3	sllv RG1, RG2, RG3	#Shift Left Logical Variable
+srl $t1,$t2,$t3	srlv RG1, RG2, RG3	#Shift Right Logical Variable
+sra $t1,$t2,$t3	srav RG1, RG2, RG3	#Shift Right Arithmetic Variable
+
 rol $t1,$t2,$t3	subu $1, $0, RG3	srlv $1, RG2, $1	sllv RG1, RG2, RG3	or RG1, RG1, $1	#ROtate Left : Set $t1 to ($t2 rotated left by number of bit positions specified in $t3)
 rol $t1,$t2,10	srl $1, RG2, S32	sll RG1, RG2, OP3	or RG1, RG1, $1	#ROtate Left : Set $t1 to ($t2 rotated left by number of bit positions specified in 5-bit immediate)
 ror $t1,$t2,$t3	subu $1, $0, RG3	sllv $1, RG2, $1	srlv RG1, RG2, RG3	or RG1, RG1, $1	#ROtate Right : Set $t1 to ($t2 rotated right by number of bit positions specified in $t3)
