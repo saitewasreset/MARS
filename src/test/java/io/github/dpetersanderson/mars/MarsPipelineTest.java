@@ -255,6 +255,17 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerExpandsGasStyleSltuImmediate(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir, "sltu-immediate.asm", ".text", "addi $2, $zero, 47", "sltu $2, $2, 48", "addu $t0, $zero, $2");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(3, statements.size());
+        assertEquals(0x2002002f, statements.get(0).getBinaryStatement());
+        assertEquals(0x2c420030, statements.get(1).getBinaryStatement());
+    }
+
+    @Test
     void assemblerResolvesHighAndLowRelocationsForForwardSymbol(@TempDir Path tempDir) throws Exception {
         MIPSprogram program = assembleProgram(
                 tempDir,

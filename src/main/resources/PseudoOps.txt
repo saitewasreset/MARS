@@ -126,6 +126,8 @@ xori $t1,100000	lui $1, VHL2	ori $1, $1, VL2U	xor RG1, RG1, $1	#XOR Immediate : 
 # Note: most of the expansions in this group were rewritten for Release 3.4.1 to remove internal branching.
 slt $t1,$t2,-100	slti RG1, RG2, VL3	#Set Less Than : if $t2 is less than 16-bit immediate then set $t1 to 1 else 0
 slt $t1,$t2,100000	lui $1, VHL3	ori $1, $1, VL3U	slt RG1, RG2, $1	#Set Less Than : if $t2 is less than 32-bit immediate then set $t1 to 1 else 0
+sltu $t1,$t2,-100	sltiu RG1, RG2, VL3	#Set Less Than Unsigned : if $t2 is less than 16-bit immediate then set $t1 to 1 else 0
+sltu $t1,$t2,100000	lui $1, VHL3	ori $1, $1, VL3U	sltu RG1, RG2, $1	#Set Less Than Unsigned : if $t2 is less than 32-bit immediate then set $t1 to 1 else 0
 
 seq $t1,$t2,$t3	subu RG1, RG2, RG3	ori $1, $0, 1	sltu RG1, RG1, $1	#Set EQual : if $t2 equal to $t3 then set $t1 to 1 else 0
 seq $t1,$t2,-100	addi $1, $0, VL3	subu RG1, RG2, $1	ori $1, $0, 1	sltu RG1, RG1, $1	#Set EQual : if $t2 equal to 16-bit immediate then set $t1 to 1 else 0
