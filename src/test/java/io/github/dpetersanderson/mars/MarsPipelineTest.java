@@ -238,8 +238,8 @@ class MarsPipelineTest {
                 tempDir,
                 "string-escapes.asm",
                 ".data",
-                ".ascii \"A\\012B\\0xff\"",
-                ".ascii \"\\0377\"",
+                ".ascii \"A\\012B\\xff\"",
+                ".ascii \"\\377\"",
                 ".asciiz \"\\0\"");
 
         assertEquals('A', Globals.memory.getByte(Memory.dataBaseAddress));
@@ -252,21 +252,60 @@ class MarsPipelineTest {
     }
 
     @Test
+    void assemblerTruncatesEscapesAndLeavesRemainder(@TempDir Path tempDir) throws Exception {
+        assembleProgram(tempDir, "escape-truncation.asm", ".data", ".ascii \"ab\\01212c\"", ".ascii \"d\\0400e\"");
+
+        int address = Memory.dataBaseAddress;
+        assertEquals('a', Globals.memory.getByte(address));
+        assertEquals('b', Globals.memory.getByte(address + 1));
+        assertEquals('\n', Globals.memory.getByte(address + 2));
+        assertEquals('1', Globals.memory.getByte(address + 3));
+        assertEquals('2', Globals.memory.getByte(address + 4));
+        assertEquals('c', Globals.memory.getByte(address + 5));
+        assertEquals('d', Globals.memory.getByte(address + 6));
+        assertEquals(32, Globals.memory.getByte(address + 7));
+        assertEquals('0', Globals.memory.getByte(address + 8));
+        assertEquals('e', Globals.memory.getByte(address + 9));
+    }
+
+    @Test
+    void assemblerSupportsCharacterLiteralEscapes(@TempDir Path tempDir) throws Exception {
+        MIPSprogram program = assembleProgram(
+                tempDir,
+                "character-escapes.asm",
+                ".text",
+                "addi $t0, $zero, '\\101'",
+                "addi $t1, $zero, '\\xff'",
+                "addi $t2, $zero, '\\n'");
+
+        List<ProgramStatement> statements = machineStatements(program);
+        assertEquals(3, statements.size());
+        assertEquals(0x20080041, statements.get(0).getBinaryStatement());
+        assertEquals(0x200900ff, statements.get(1).getBinaryStatement());
+        assertEquals(0x200a000a, statements.get(2).getBinaryStatement());
+    }
+
+    @Test
     void assemblerRejectsInvalidStringEscapesWithSourceLocations(@TempDir Path tempDir) throws Exception {
-        assertAssemblyFailsWith(tempDir, "invalid-octal-string.asm", "line 2 column 9", ".data", ".ascii \"\\018\"");
+        assertAssemblyFailsWith(
+                tempDir,
+                "invalid-octal-string.asm",
+                "octal escape \"\\400\" is outside the byte range 0..255",
+                ".data",
+                ".ascii \"\\400\"");
         assertAssemblyFailsWith(
                 tempDir,
                 "out-of-range-string.asm",
-                "numeric escape \"\\0xabcd\" is outside the byte range 0..255",
+                "hexadecimal escape \"\\xabcd\" is outside the byte range 0..255",
                 ".data",
-                ".ascii \"\\0xabcd\"");
+                ".ascii \"\\xabcd\"");
         assertAssemblyFailsWith(tempDir, "unknown-string-escape.asm", "line 2 column 10", ".data", ".ascii \"A\\q\"");
         assertAssemblyFailsWith(
                 tempDir,
                 "incomplete-hex-string.asm",
                 "hexadecimal escape requires at least one digit",
                 ".data",
-                ".ascii \"\\0x\"");
+                ".ascii \"\\x\"");
     }
 
     @Test

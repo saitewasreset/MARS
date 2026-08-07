@@ -1,6 +1,5 @@
 package io.github.dpetersanderson.mars.assembler;
 
-import io.github.dpetersanderson.mars.util.Binary;
 import java.io.ByteArrayOutputStream;
 
 /** Decodes the contents of an ASCII or ASCIIZ string literal. */
@@ -20,87 +19,126 @@ final class StringLiteralDecoder {
                 continue;
             }
 
-            int escapeOffset = index;
-            index++;
-            if (index >= literal.length() - 1) {
-                throw new DecodeException(
-                        Reason.INCOMPLETE_ESCAPE, escapeOffset, "incomplete escape sequence in string literal");
-            }
-
-            character = literal.charAt(index);
-            switch (character) {
-                case 'n':
-                    decoded.write('\n');
-                    break;
-                case 't':
-                    decoded.write('\t');
-                    break;
-                case 'r':
-                    decoded.write('\r');
-                    break;
-                case '\\', '\'', '"':
-                    decoded.write(character);
-                    break;
-                case 'b':
-                    decoded.write('\b');
-                    break;
-                case 'f':
-                    decoded.write('\f');
-                    break;
-                case '0':
-                    int numericEnd = scanNumericEscapeEnd(literal, index);
-                    String numericLiteral = literal.substring(index, numericEnd);
-                    int value;
-                    try {
-                        value = Binary.stringToInt(numericLiteral);
-                    } catch (NumberFormatException exception) {
-                        throw new DecodeException(
-                                Reason.INVALID_NUMERIC_ESCAPE,
-                                escapeOffset,
-                                "invalid numeric escape \"\\" + numericLiteral + "\"",
-                                exception);
-                    }
-                    if (value < 0 || value > 0xff) {
-                        throw new DecodeException(
-                                Reason.NUMERIC_ESCAPE_OUT_OF_RANGE,
-                                escapeOffset,
-                                "numeric escape \"\\" + numericLiteral + "\" is outside the byte range 0..255");
-                    }
-                    decoded.write(value);
-                    index = numericEnd - 1;
-                    break;
-                default:
-                    throw new DecodeException(
-                            Reason.UNKNOWN_ESCAPE, escapeOffset, "unknown escape sequence \"\\" + character + "\"");
-            }
+            DecodedEscape escape = decodeEscape(literal, index, literal.length() - 1);
+            decoded.write(escape.value());
+            index = escape.endIndex() - 1;
         }
         return decoded.toByteArray();
     }
 
-    private static int scanNumericEscapeEnd(String literal, int zeroIndex) throws DecodeException {
-        int contentEnd = literal.length() - 1;
-        int index = zeroIndex + 1;
-        if (index < contentEnd && (literal.charAt(index) == 'x' || literal.charAt(index) == 'X')) {
-            int digitStart = ++index;
-            while (index < contentEnd && isHexDigit(literal.charAt(index))) {
-                index++;
-            }
-            if (index == digitStart) {
-                throw new DecodeException(
-                        Reason.INVALID_NUMERIC_ESCAPE, zeroIndex - 1, "hexadecimal escape requires at least one digit");
-            }
-            return index;
+    /**
+     * Decodes the escape sequence that begins at the given backslash and returns its byte value
+     * together with the index of the first character that follows the escape.
+     *
+     * <p>Recognized forms are the simple escapes {@code \n}, {@code \t}, {@code \r}, {@code \b},
+     * {@code \f}, {@code \\}, {@code \'}, {@code \"}, the octal escape {@code \ooo} (one to three
+     * octal digits, truncated at the first non-octal digit) and the hexadecimal escape {@code \xhh}
+     * (one or more consecutive hexadecimal digits).
+     *
+     * @param literal source text containing the escape
+     * @param escapeIndex position of the backslash within {@code literal}
+     * @param contentEnd exclusive end of the content region within {@code literal}
+     * @return the decoded byte value and the index just past the escape
+     * @throws DecodeException if the escape is incomplete, unknown or its value exceeds the byte range
+     */
+    static DecodedEscape decodeEscape(String literal, int escapeIndex, int contentEnd) throws DecodeException {
+        int index = escapeIndex + 1;
+        if (index >= contentEnd) {
+            throw new DecodeException(
+                    Reason.INCOMPLETE_ESCAPE, escapeIndex, "incomplete escape sequence in string literal");
         }
-        while (index < contentEnd && Character.isDigit(literal.charAt(index))) {
+
+        char character = literal.charAt(index);
+        return switch (character) {
+            case 'n' -> new DecodedEscape('\n', index + 1);
+            case 't' -> new DecodedEscape('\t', index + 1);
+            case 'r' -> new DecodedEscape('\r', index + 1);
+            case 'b' -> new DecodedEscape('\b', index + 1);
+            case 'f' -> new DecodedEscape('\f', index + 1);
+            case '\\', '\'', '"' -> new DecodedEscape(character, index + 1);
+            case 'x', 'X' -> decodeHexEscape(literal, escapeIndex, index, contentEnd);
+            default -> {
+                if (character >= '0' && character <= '7') {
+                    yield decodeOctalEscape(literal, escapeIndex, index, contentEnd);
+                }
+                throw new DecodeException(
+                        Reason.UNKNOWN_ESCAPE, escapeIndex, "unknown escape sequence \"\\" + character + "\"");
+            }
+        };
+    }
+
+    private static DecodedEscape decodeOctalEscape(String literal, int escapeIndex, int index, int contentEnd)
+            throws DecodeException {
+        int value = 0;
+        int digits = 0;
+        while (index < contentEnd && digits < 3) {
+            char digit = literal.charAt(index);
+            if (digit < '0' || digit > '7') {
+                break;
+            }
+            value = value * 8 + (digit - '0');
+            index++;
+            digits++;
+        }
+        if (value > 0xff) {
+            throw new DecodeException(
+                    Reason.NUMERIC_ESCAPE_OUT_OF_RANGE,
+                    escapeIndex,
+                    "octal escape \"\\" + literal.substring(escapeIndex + 1, index)
+                            + "\" is outside the byte range 0..255");
+        }
+        return new DecodedEscape(value, index);
+    }
+
+    private static DecodedEscape decodeHexEscape(String literal, int escapeIndex, int index, int contentEnd)
+            throws DecodeException {
+        int digitStart = index + 1;
+        index = digitStart;
+        int value = 0;
+        while (index < contentEnd && isHexDigit(literal.charAt(index))) {
+            char digit = literal.charAt(index);
+            if (value <= 0xff) {
+                value = value * 16 + Character.digit(digit, 16);
+            }
             index++;
         }
-        return index;
+        if (index == digitStart) {
+            throw new DecodeException(
+                    Reason.INVALID_NUMERIC_ESCAPE, escapeIndex, "hexadecimal escape requires at least one digit");
+        }
+        if (value > 0xff) {
+            throw new DecodeException(
+                    Reason.NUMERIC_ESCAPE_OUT_OF_RANGE,
+                    escapeIndex,
+                    "hexadecimal escape \"\\x" + literal.substring(digitStart, index)
+                            + "\" is outside the byte range 0..255");
+        }
+        return new DecodedEscape(value, index);
     }
 
     private static boolean isHexDigit(char character) {
         return character >= '0' && character <= '9'
                 || character >= 'a' && character <= 'f'
                 || character >= 'A' && character <= 'F';
+    }
+
+    /** The result of decoding one escape sequence. */
+    static final class DecodedEscape {
+        private final int value;
+        private final int endIndex;
+
+        private DecodedEscape(int value, int endIndex) {
+            this.value = value;
+            this.endIndex = endIndex;
+        }
+
+        int value() {
+            return value;
+        }
+
+        int endIndex() {
+            return endIndex;
+        }
     }
 
     enum Reason {
@@ -118,12 +156,6 @@ final class StringLiteralDecoder {
 
         private DecodeException(Reason reason, int offset, String message) {
             super(message);
-            this.reason = reason;
-            this.offset = offset;
-        }
-
-        private DecodeException(Reason reason, int offset, String message, Throwable cause) {
-            super(message, cause);
             this.reason = reason;
             this.offset = offset;
         }

@@ -835,21 +835,11 @@ public class Assembler {
             if (tokens.size() > 1 && TokenTypes.isIntegerTokenType(tokens.get(1).getType())) {
                 this.textAddress.set(Binary.stringToInt(tokens.get(1).getValue())); // KENV 1/6/05
             }
-        } else if (direct == Directives.WORD
-                || direct == Directives.HALF
-                || direct == Directives.BYTE
-                || direct == Directives.FLOAT
-                || direct == Directives.DOUBLE) {
-            this.dataDirective = direct;
-            if (passesDataSegmentCheck(token) && tokens.size() > 1) { // DPS
-                // 11/20/06, added text segment prohibition
-                storeNumeric(tokens, direct, errors);
-            }
-        } else if (direct == Directives.ASCII || direct == Directives.ASCIIZ) {
-            this.dataDirective = direct;
-            if (passesDataSegmentCheck(token)) {
-                storeStrings(tokens, direct, errors);
-            }
+        } else if (isNumericDataDirective(direct)) {
+            // 11/20/06, added text segment prohibition
+            storeNumericDataDirective(tokens, direct, errors);
+        } else if (isStringDataDirective(direct)) {
+            storeStringDataDirective(tokens, direct, errors);
         } else if (direct == Directives.ALIGN) {
             if (tokens.size() != 2) {
                 errors.add(new ErrorMessage(
@@ -1091,20 +1081,42 @@ public class Assembler {
     // directive list begun on on previous line.
     private void executeDirectiveContinuation(TokenList tokens) {
         Directives direct = this.dataDirective;
-        if (direct == Directives.WORD
-                || direct == Directives.HALF
-                || direct == Directives.BYTE
-                || direct == Directives.FLOAT
-                || direct == Directives.DOUBLE) {
+        if (isNumericDataDirective(direct)) {
             if (!tokens.isEmpty()) {
                 storeNumeric(tokens, direct, errors);
             }
-        } else if (direct == Directives.ASCII || direct == Directives.ASCIIZ) {
+        } else if (isStringDataDirective(direct)) {
             if (passesDataSegmentCheck(tokens.get(0))) {
                 storeStrings(tokens, direct, errors);
             }
         }
     } // executeDirectiveContinuation()
+
+    private static boolean isNumericDataDirective(Directives direct) {
+        return direct == Directives.WORD
+                || direct == Directives.HALF
+                || direct == Directives.BYTE
+                || direct == Directives.FLOAT
+                || direct == Directives.DOUBLE;
+    }
+
+    private static boolean isStringDataDirective(Directives direct) {
+        return direct == Directives.ASCII || direct == Directives.ASCIIZ;
+    }
+
+    private void storeNumericDataDirective(TokenList tokens, Directives direct, ErrorList errors) {
+        this.dataDirective = direct;
+        if (passesDataSegmentCheck(tokens.get(0)) && tokens.size() > 1) { // DPS
+            storeNumeric(tokens, direct, errors);
+        }
+    }
+
+    private void storeStringDataDirective(TokenList tokens, Directives direct, ErrorList errors) {
+        this.dataDirective = direct;
+        if (passesDataSegmentCheck(tokens.get(0))) {
+            storeStrings(tokens, direct, errors);
+        }
+    }
 
     // //////////////////////////////////////////////////////////////////////////////////
     // Given token, find the corresponding Instruction object. If token was not
